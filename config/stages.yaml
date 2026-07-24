@@ -1,0 +1,100 @@
+# Stage-level parameters (thresholds, sizes, paths). NOT models — model choices
+# live in models.yaml. Nothing here is hardcoded in code; stages read it via
+# AppConfig.stages so tuning is a config edit (PROMPT.md convention).
+
+intake:
+  # Where processed/stored artifacts land, relative to EnvProfile.data_dir.
+  storage_subdir: uploads
+  # PDF pages are rendered at this DPI (DPI-normalize for scanned PDFs).
+  pdf_render_dpi: 200
+  # Photos: normalize the longest edge to this many pixels (approx DPI-normalize
+  # for camera captures where true DPI is unknown).
+  target_long_edge_px: 2000
+  # Deskew: correct rotations up to this magnitude; ignore larger (likely not skew).
+  deskew_max_angle_deg: 15.0
+  # Denoise strength for cv2.fastNlMeansDenoisingColored (h, hColor).
+  denoise_h: 7
+  # Compress-then-hash: JPEG quality for the stored artifact.
+  jpeg_quality: 85
+  quality_gate:
+    # Variance-of-Laplacian below this = too blurry -> rescan.
+    blur_laplacian_min: 100.0
+    # Mean grayscale brightness (0-255) must sit inside this band.
+    # Clean white printed reports average ~230-240 after preprocessing, so the
+    # upper bound must sit above that; 245+ still catches blown-out captures.
+    brightness_min: 40.0
+    brightness_max: 245.0
+  # Doc-vs-photo gate (ocrplan.md 2.1): a page whose near-white pixel share is
+  # below min_white_ratio is treated as a clinical photo, and OCR skips it
+  # (ocr.skip_non_documents). PDF pages are always documents.
+  document_gate:
+    white_thresh: 180
+    min_white_ratio: 0.35
+  # Digital-PDF fast path (ocrplan.md 2.2): pages with a real embedded text
+  # layer (>= min_words words) carry it forward and never touch the OCR engine.
+  text_layer:
+    enabled: true
+    min_words: 20
+
+ocr:
+  # Extracted fields below this OCR confidence are flagged for manual review.
+  low_confidence_threshold: 0.80
+  # Skip pages intake marked as non-documents (clinical photos have no text).
+  skip_non_documents: true
+  # Consume the intake-extracted PDF text layer instead of running the engine.
+  use_text_layer: true
+  # On-disk result cache keyed on (page sha256, engine spec) — re-runs of the
+  # same page are instant; changing engine/config invalidates automatically.
+  cache: true
+  cache_subdir: ocr_cache
+
+image_tag:
+  # Below this classifier score the type is recorded as "unknown" (no guessing).
+  min_score_for_type: 0.5
+
+summary:
+  # Summaries below this faithfulness score are considered failing in the bench.
+  faithfulness_min: 1.0
+  # 1024 truncated real multi-report sessions mid-JSON (Devanagari narratives
+  # are token-hungry): Ollama returned done_reason=length -> JSONDecodeError.
+  max_tokens: 2048
+  # Large sessions (a 16-page report carries ~59 values) need more room than the
+  # 2-page default; the stage scales max_tokens with the value count up to this
+  # ceiling. Without it the summary was truncated to a fraction of the findings.
+  max_tokens_ceiling: 6144
+  temperature: 0.0
+  # VARIANT (poc testing2): text-only summary — Qwen2.5-3B reads OCR text only;
+  # report page images are never fed to the summary LLM. Images enter the
+  # pipeline solely through the image_tag stage (type + quality, no diagnosis).
+  use_images: false
+
+interpret:
+  # LabQAR reference table, generated from the published 550-row LOINC-mapped
+  # xlsx by data/labqar/build_reference_table.py (277 analytes, curated POC
+  # critical thresholds + Indian aliases merged in). PENDING CLINICIAN REVIEW.
+  # Revert to the 15-analyte hand-curated table by pointing at
+  # data/labqar/reference_ranges.yaml — no code change.
+  reference_path: data/labqar/reference_ranges_labqar.yaml
+  # Statuses that raise a value to high-priority in the summary for the doctor.
+  high_priority_statuses: [critical]
+
+intake_qa:
+  # Clinician-reviewable question bank; the stage may only ask patterns from here.
+  bank_path: data/question_bank/patterns.yaml
+  # Most questions surfaced per session (top-N by priority).
+  max_questions: 5
+  # A report older than this (months) fires the "gap" question.
+  stale_report_months: 6
+
+voice:
+  # Where synthesized WAVs land (under EnvProfile.data_dir).
+  output_subdir: audio
+  # VARIANT (poc testing2): the summary is NEVER read out loud and NEVER
+  # translated — it stays an English text document for the clinician. Voice is
+  # used only for the intake Q&A: questions are rendered+spoken in the patient
+  # language (Hindi default) and answers come back via STT.
+  speak_summary: false
+  speak_questions: true
+  translate_summary: false
+  # Safety cap on clips per session.
+  max_clips: 12

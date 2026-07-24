@@ -1,0 +1,225 @@
+{
+  "generated_at": "2026-07-17T04:48:58+00:00",
+  "model": "google/medgemma-4b-it",
+  "budget_s": 90.0,
+  "dataset": {
+    "n_items": 6,
+    "n_pages_total": 16,
+    "langs": {
+      "en": 3,
+      "hi": 3
+    }
+  },
+  "conditions": [
+    {
+      "label": "text_only",
+      "use_images": false,
+      "masked_low_conf": false,
+      "vram_peak_mb": 3517,
+      "metrics": {
+        "faithfulness": 0.9945,
+        "hallucination_rate": 0.0055,
+        "extraction_f1": 0.8333,
+        "coverage": 0.8333,
+        "hindi_quality": 0.7599,
+        "vision_recovery": 0.0,
+        "latency_s_mean": 69.5347,
+        "latency_s_p90": 92.047,
+        "latency_s_max": 113.9683,
+        "latency_per_page_mean": 25.8604,
+        "budget_pass_rate": 0.8333
+      },
+      "per_item": [
+        {
+          "id": "multi_00_en",
+          "lang": "en",
+          "n_pages": 3,
+          "latency_s": 70.1256,
+          "latency_per_page_s": 23.3752,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 0.0,
+          "coverage": 0.0,
+          "hindi_quality": null,
+          "vision_recovery": null,
+          "under_budget": true
+        },
+        {
+          "id": "multi_00_hi",
+          "lang": "hi",
+          "n_pages": 3,
+          "latency_s": 68.7926,
+          "latency_per_page_s": 22.9309,
+          "faithfulness": 0.9672,
+          "hallucination_rate": 0.0328,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": 0.5,
+          "vision_recovery": null,
+          "under_budget": true
+        },
+        {
+          "id": "multi_01_en",
+          "lang": "en",
+          "n_pages": 2,
+          "latency_s": 47.8827,
+          "latency_per_page_s": 23.9413,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": null,
+          "vision_recovery": null,
+          "under_budget": true
+        },
+        {
+          "id": "multi_01_hi",
+          "lang": "hi",
+          "n_pages": 2,
+          "latency_s": 48.675,
+          "latency_per_page_s": 24.3375,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": 0.861,
+          "vision_recovery": null,
+          "under_budget": true
+        },
+        {
+          "id": "multi_02_en",
+          "lang": "en",
+          "n_pages": 3,
+          "latency_s": 67.7639,
+          "latency_per_page_s": 22.588,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": null,
+          "vision_recovery": null,
+          "under_budget": true
+        },
+        {
+          "id": "multi_02_hi",
+          "lang": "hi",
+          "n_pages": 3,
+          "latency_s": 113.9683,
+          "latency_per_page_s": 37.9894,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": 0.9187,
+          "vision_recovery": null,
+          "under_budget": false
+        }
+      ]
+    },
+    {
+      "label": "text+image",
+      "use_images": true,
+      "masked_low_conf": true,
+      "vram_peak_mb": 3703,
+      "metrics": {
+        "faithfulness": 0.9899,
+        "hallucination_rate": 0.0101,
+        "extraction_f1": 0.8333,
+        "coverage": 0.8333,
+        "hindi_quality": 0.597,
+        "vision_recovery": 0.8333,
+        "latency_s_mean": 60.913,
+        "latency_s_p90": 71.6456,
+        "latency_s_max": 73.1938,
+        "latency_per_page_mean": 23.3071,
+        "budget_pass_rate": 1.0
+      },
+      "per_item": [
+        {
+          "id": "multi_00_en",
+          "lang": "en",
+          "n_pages": 3,
+          "latency_s": 59.6502,
+          "latency_per_page_s": 19.8834,
+          "faithfulness": 0.9394,
+          "hallucination_rate": 0.0606,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": null,
+          "vision_recovery": 1.0,
+          "under_budget": true
+        },
+        {
+          "id": "multi_00_hi",
+          "lang": "hi",
+          "n_pages": 3,
+          "latency_s": 54.4374,
+          "latency_per_page_s": 18.1458,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 0.0,
+          "coverage": 0.0,
+          "hindi_quality": 0.0,
+          "vision_recovery": 0.0,
+          "under_budget": true
+        },
+        {
+          "id": "multi_01_en",
+          "lang": "en",
+          "n_pages": 2,
+          "latency_s": 54.6407,
+          "latency_per_page_s": 27.3204,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": null,
+          "vision_recovery": 1.0,
+          "under_budget": true
+        },
+        {
+          "id": "multi_01_hi",
+          "lang": "hi",
+          "n_pages": 2,
+          "latency_s": 53.4587,
+          "latency_per_page_s": 26.7294,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": 0.8699,
+          "vision_recovery": 1.0,
+          "under_budget": true
+        },
+        {
+          "id": "multi_02_en",
+          "lang": "en",
+          "n_pages": 3,
+          "latency_s": 70.0975,
+          "latency_per_page_s": 23.3658,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": null,
+          "vision_recovery": 1.0,
+          "under_budget": true
+        },
+        {
+          "id": "multi_02_hi",
+          "lang": "hi",
+          "n_pages": 3,
+          "latency_s": 73.1938,
+          "latency_per_page_s": 24.3979,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "f1": 1.0,
+          "coverage": 1.0,
+          "hindi_quality": 0.921,
+          "vision_recovery": 1.0,
+          "under_budget": true
+        }
+      ]
+    }
+  ]
+}

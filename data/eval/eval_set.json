@@ -1,0 +1,1282 @@
+{
+  "items": [
+    {
+      "id": "rpt_00_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Hemoglobin",
+          "value": "9.5",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Hemoglobin ref-range",
+          "value": "13.0-17.0",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "WBC",
+          "value": "11200",
+          "unit": "/cumm",
+          "low_confidence": true
+        },
+        {
+          "name": "WBC ref-range",
+          "value": "4000-11000",
+          "unit": "/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "Platelets",
+          "value": "1.4",
+          "unit": "lakhs/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "Platelets ref-range",
+          "value": "1.5-4.1",
+          "unit": "lakhs/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Apollo Diagnostic Centre",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. A K Sharma",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "12/05/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Apollo Diagnostic Centre",
+        "doctor": "Dr. A K Sharma",
+        "report_dates": [
+          "12/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Hemoglobin",
+            "value": "9.5",
+            "unit": "g/dL",
+            "ref_range": "13.0-17.0",
+            "source_field": "Hemoglobin"
+          },
+          {
+            "analyte": "WBC",
+            "value": "11200",
+            "unit": "/cumm",
+            "ref_range": "4000-11000",
+            "source_field": "WBC"
+          },
+          {
+            "analyte": "Platelets",
+            "value": "1.4",
+            "unit": "lakhs/cumm",
+            "ref_range": "1.5-4.1",
+            "source_field": "Platelets"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_00_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Hemoglobin",
+          "value": "9.5",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Hemoglobin ref-range",
+          "value": "13.0-17.0",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "WBC",
+          "value": "11200",
+          "unit": "/cumm",
+          "low_confidence": true
+        },
+        {
+          "name": "WBC ref-range",
+          "value": "4000-11000",
+          "unit": "/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "Platelets",
+          "value": "1.4",
+          "unit": "lakhs/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "Platelets ref-range",
+          "value": "1.5-4.1",
+          "unit": "lakhs/cumm",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Apollo Diagnostic Centre",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. A K Sharma",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "12/05/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Apollo Diagnostic Centre",
+        "doctor": "Dr. A K Sharma",
+        "report_dates": [
+          "12/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Hemoglobin",
+            "value": "9.5",
+            "unit": "g/dL",
+            "ref_range": "13.0-17.0",
+            "source_field": "Hemoglobin"
+          },
+          {
+            "analyte": "WBC",
+            "value": "11200",
+            "unit": "/cumm",
+            "ref_range": "4000-11000",
+            "source_field": "WBC"
+          },
+          {
+            "analyte": "Platelets",
+            "value": "1.4",
+            "unit": "lakhs/cumm",
+            "ref_range": "1.5-4.1",
+            "source_field": "Platelets"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_01_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Glucose Fasting",
+          "value": "142",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting ref-range",
+          "value": "70-100",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "HbA1c",
+          "value": "7.8",
+          "unit": "%",
+          "low_confidence": false
+        },
+        {
+          "name": "HbA1c ref-range",
+          "value": "4.0-5.6",
+          "unit": "%",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "City Care Laboratory",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Priya Nair",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "03/06/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Metformin 500mg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "City Care Laboratory",
+        "doctor": "Dr. Priya Nair",
+        "report_dates": [
+          "03/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Glucose Fasting",
+            "value": "142",
+            "unit": "mg/dL",
+            "ref_range": "70-100",
+            "source_field": "Glucose Fasting"
+          },
+          {
+            "analyte": "HbA1c",
+            "value": "7.8",
+            "unit": "%",
+            "ref_range": "4.0-5.6",
+            "source_field": "HbA1c"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Metformin 500mg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_01_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Glucose Fasting",
+          "value": "142",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting ref-range",
+          "value": "70-100",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "HbA1c",
+          "value": "7.8",
+          "unit": "%",
+          "low_confidence": false
+        },
+        {
+          "name": "HbA1c ref-range",
+          "value": "4.0-5.6",
+          "unit": "%",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "City Care Laboratory",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Priya Nair",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "03/06/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Metformin 500mg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "City Care Laboratory",
+        "doctor": "Dr. Priya Nair",
+        "report_dates": [
+          "03/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Glucose Fasting",
+            "value": "142",
+            "unit": "mg/dL",
+            "ref_range": "70-100",
+            "source_field": "Glucose Fasting"
+          },
+          {
+            "analyte": "HbA1c",
+            "value": "7.8",
+            "unit": "%",
+            "ref_range": "4.0-5.6",
+            "source_field": "HbA1c"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Metformin 500mg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_02_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Creatinine",
+          "value": "1.6",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Creatinine ref-range",
+          "value": "0.7-1.3",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Urea",
+          "value": "48",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Urea ref-range",
+          "value": "15-40",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Sanjeevani Pathology Lab",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. R Mehta",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "21/04/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Sanjeevani Pathology Lab",
+        "doctor": "Dr. R Mehta",
+        "report_dates": [
+          "21/04/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Creatinine",
+            "value": "1.6",
+            "unit": "mg/dL",
+            "ref_range": "0.7-1.3",
+            "source_field": "Creatinine"
+          },
+          {
+            "analyte": "Urea",
+            "value": "48",
+            "unit": "mg/dL",
+            "ref_range": "15-40",
+            "source_field": "Urea"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_02_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Creatinine",
+          "value": "1.6",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Creatinine ref-range",
+          "value": "0.7-1.3",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Urea",
+          "value": "48",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Urea ref-range",
+          "value": "15-40",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Sanjeevani Pathology Lab",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. R Mehta",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "21/04/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Sanjeevani Pathology Lab",
+        "doctor": "Dr. R Mehta",
+        "report_dates": [
+          "21/04/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Creatinine",
+            "value": "1.6",
+            "unit": "mg/dL",
+            "ref_range": "0.7-1.3",
+            "source_field": "Creatinine"
+          },
+          {
+            "analyte": "Urea",
+            "value": "48",
+            "unit": "mg/dL",
+            "ref_range": "15-40",
+            "source_field": "Urea"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_03_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "TSH",
+          "value": "6.9",
+          "unit": "mIU/L",
+          "low_confidence": false
+        },
+        {
+          "name": "TSH ref-range",
+          "value": "0.4-4.0",
+          "unit": "mIU/L",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin D",
+          "value": "18",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin D ref-range",
+          "value": "30-100",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Metro Hospital Lab",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. S Iyer",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "09/06/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Thyronorm 50mcg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Metro Hospital Lab",
+        "doctor": "Dr. S Iyer",
+        "report_dates": [
+          "09/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "TSH",
+            "value": "6.9",
+            "unit": "mIU/L",
+            "ref_range": "0.4-4.0",
+            "source_field": "TSH"
+          },
+          {
+            "analyte": "Vitamin D",
+            "value": "18",
+            "unit": "ng/mL",
+            "ref_range": "30-100",
+            "source_field": "Vitamin D"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Thyronorm 50mcg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_03_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "TSH",
+          "value": "6.9",
+          "unit": "mIU/L",
+          "low_confidence": false
+        },
+        {
+          "name": "TSH ref-range",
+          "value": "0.4-4.0",
+          "unit": "mIU/L",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin D",
+          "value": "18",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin D ref-range",
+          "value": "30-100",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Metro Hospital Lab",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. S Iyer",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "09/06/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Thyronorm 50mcg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Metro Hospital Lab",
+        "doctor": "Dr. S Iyer",
+        "report_dates": [
+          "09/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "TSH",
+            "value": "6.9",
+            "unit": "mIU/L",
+            "ref_range": "0.4-4.0",
+            "source_field": "TSH"
+          },
+          {
+            "analyte": "Vitamin D",
+            "value": "18",
+            "unit": "ng/mL",
+            "ref_range": "30-100",
+            "source_field": "Vitamin D"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Thyronorm 50mcg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_04_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Total Cholesterol",
+          "value": "232",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Total Cholesterol ref-range",
+          "value": "125-200",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Triglycerides",
+          "value": "210",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Triglycerides ref-range",
+          "value": "0-150",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Lifeline Diagnostics",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Kavita Rao",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "17/03/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Atorvastatin 10mg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Lifeline Diagnostics",
+        "doctor": "Dr. Kavita Rao",
+        "report_dates": [
+          "17/03/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Total Cholesterol",
+            "value": "232",
+            "unit": "mg/dL",
+            "ref_range": "125-200",
+            "source_field": "Total Cholesterol"
+          },
+          {
+            "analyte": "Triglycerides",
+            "value": "210",
+            "unit": "mg/dL",
+            "ref_range": "0-150",
+            "source_field": "Triglycerides"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Atorvastatin 10mg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_04_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Total Cholesterol",
+          "value": "232",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Total Cholesterol ref-range",
+          "value": "125-200",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Triglycerides",
+          "value": "210",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Triglycerides ref-range",
+          "value": "0-150",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Lifeline Diagnostics",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Kavita Rao",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "17/03/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Tab Atorvastatin 10mg",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Lifeline Diagnostics",
+        "doctor": "Dr. Kavita Rao",
+        "report_dates": [
+          "17/03/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Total Cholesterol",
+            "value": "232",
+            "unit": "mg/dL",
+            "ref_range": "125-200",
+            "source_field": "Total Cholesterol"
+          },
+          {
+            "analyte": "Triglycerides",
+            "value": "210",
+            "unit": "mg/dL",
+            "ref_range": "0-150",
+            "source_field": "Triglycerides"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Tab Atorvastatin 10mg",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_05_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Bilirubin Total",
+          "value": "2.1",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Bilirubin Total ref-range",
+          "value": "0.3-1.2",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "SGPT",
+          "value": "68",
+          "unit": "U/L",
+          "low_confidence": false
+        },
+        {
+          "name": "SGPT ref-range",
+          "value": "0-45",
+          "unit": "U/L",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Arogya Clinic Laboratory",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. M Khan",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "28/05/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Arogya Clinic Laboratory",
+        "doctor": "Dr. M Khan",
+        "report_dates": [
+          "28/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Bilirubin Total",
+            "value": "2.1",
+            "unit": "mg/dL",
+            "ref_range": "0.3-1.2",
+            "source_field": "Bilirubin Total"
+          },
+          {
+            "analyte": "SGPT",
+            "value": "68",
+            "unit": "U/L",
+            "ref_range": "0-45",
+            "source_field": "SGPT"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_05_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Bilirubin Total",
+          "value": "2.1",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Bilirubin Total ref-range",
+          "value": "0.3-1.2",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "SGPT",
+          "value": "68",
+          "unit": "U/L",
+          "low_confidence": false
+        },
+        {
+          "name": "SGPT ref-range",
+          "value": "0-45",
+          "unit": "U/L",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Arogya Clinic Laboratory",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. M Khan",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "28/05/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Arogya Clinic Laboratory",
+        "doctor": "Dr. M Khan",
+        "report_dates": [
+          "28/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Bilirubin Total",
+            "value": "2.1",
+            "unit": "mg/dL",
+            "ref_range": "0.3-1.2",
+            "source_field": "Bilirubin Total"
+          },
+          {
+            "analyte": "SGPT",
+            "value": "68",
+            "unit": "U/L",
+            "ref_range": "0-45",
+            "source_field": "SGPT"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_06_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Hemoglobin",
+          "value": "14.2",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Hemoglobin ref-range",
+          "value": "13.0-17.0",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting",
+          "value": "92",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting ref-range",
+          "value": "70-100",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Sunrise Medical Centre",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Anil Gupta",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "02/06/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Sunrise Medical Centre",
+        "doctor": "Dr. Anil Gupta",
+        "report_dates": [
+          "02/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Hemoglobin",
+            "value": "14.2",
+            "unit": "g/dL",
+            "ref_range": "13.0-17.0",
+            "source_field": "Hemoglobin"
+          },
+          {
+            "analyte": "Glucose Fasting",
+            "value": "92",
+            "unit": "mg/dL",
+            "ref_range": "70-100",
+            "source_field": "Glucose Fasting"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_06_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Hemoglobin",
+          "value": "14.2",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Hemoglobin ref-range",
+          "value": "13.0-17.0",
+          "unit": "g/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting",
+          "value": "92",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "Glucose Fasting ref-range",
+          "value": "70-100",
+          "unit": "mg/dL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Sunrise Medical Centre",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Anil Gupta",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "02/06/2026",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Sunrise Medical Centre",
+        "doctor": "Dr. Anil Gupta",
+        "report_dates": [
+          "02/06/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Hemoglobin",
+            "value": "14.2",
+            "unit": "g/dL",
+            "ref_range": "13.0-17.0",
+            "source_field": "Hemoglobin"
+          },
+          {
+            "analyte": "Glucose Fasting",
+            "value": "92",
+            "unit": "mg/dL",
+            "ref_range": "70-100",
+            "source_field": "Glucose Fasting"
+          }
+        ],
+        "medications": []
+      }
+    },
+    {
+      "id": "rpt_07_en",
+      "lang": "en",
+      "ocr_fields": [
+        {
+          "name": "Vitamin B12",
+          "value": "180",
+          "unit": "pg/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin B12 ref-range",
+          "value": "200-900",
+          "unit": "pg/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Ferritin",
+          "value": "12",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Ferritin ref-range",
+          "value": "30-400",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Nova Path Labs",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Neha Verma",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "14/05/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Cap Vitamin B12",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Nova Path Labs",
+        "doctor": "Dr. Neha Verma",
+        "report_dates": [
+          "14/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Vitamin B12",
+            "value": "180",
+            "unit": "pg/mL",
+            "ref_range": "200-900",
+            "source_field": "Vitamin B12"
+          },
+          {
+            "analyte": "Ferritin",
+            "value": "12",
+            "unit": "ng/mL",
+            "ref_range": "30-400",
+            "source_field": "Ferritin"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Cap Vitamin B12",
+            "source_field": "drug"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rpt_07_hi",
+      "lang": "hi",
+      "ocr_fields": [
+        {
+          "name": "Vitamin B12",
+          "value": "180",
+          "unit": "pg/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Vitamin B12 ref-range",
+          "value": "200-900",
+          "unit": "pg/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Ferritin",
+          "value": "12",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "Ferritin ref-range",
+          "value": "30-400",
+          "unit": "ng/mL",
+          "low_confidence": false
+        },
+        {
+          "name": "facility",
+          "value": "Nova Path Labs",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "doctor",
+          "value": "Dr. Neha Verma",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "date",
+          "value": "14/05/2026",
+          "unit": null,
+          "low_confidence": false
+        },
+        {
+          "name": "drug",
+          "value": "Cap Vitamin B12",
+          "unit": null,
+          "low_confidence": false
+        }
+      ],
+      "gold": {
+        "facility": "Nova Path Labs",
+        "doctor": "Dr. Neha Verma",
+        "report_dates": [
+          "14/05/2026"
+        ],
+        "lab_findings": [
+          {
+            "analyte": "Vitamin B12",
+            "value": "180",
+            "unit": "pg/mL",
+            "ref_range": "200-900",
+            "source_field": "Vitamin B12"
+          },
+          {
+            "analyte": "Ferritin",
+            "value": "12",
+            "unit": "ng/mL",
+            "ref_range": "30-400",
+            "source_field": "Ferritin"
+          }
+        ],
+        "medications": [
+          {
+            "name": "Cap Vitamin B12",
+            "source_field": "drug"
+          }
+        ]
+      }
+    }
+  ]
+}

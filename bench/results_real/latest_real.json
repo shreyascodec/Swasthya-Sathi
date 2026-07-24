@@ -1,0 +1,99 @@
+{
+  "meta": {
+    "repo": "poc testing2",
+    "label": "Pipeline B \u2014 FORCED OCR",
+    "env": "dev_4060",
+    "llm": "ollama_llm",
+    "llm_model": "qwen2.5:3b-instruct",
+    "image_tag": "mobilenetv3",
+    "ocr": "paddleocr"
+  },
+  "rows": [
+    {
+      "pdf": "test1.pdf",
+      "pages": 2,
+      "truth_values": 8,
+      "extracted_values": 9,
+      "recall": 1.0,
+      "name_matched": 8,
+      "value_correct": 8,
+      "value_accuracy": 1.0,
+      "misreads": [],
+      "missed": [],
+      "summary_findings": 2,
+      "summary_coverage": 0.25,
+      "flags": 9,
+      "flag_counts": {
+        "low": 1,
+        "normal": 4,
+        "high": 1,
+        "critical": 0,
+        "unknown": 3
+      },
+      "narrative_chars": 164,
+      "narrative_review": [
+        "Creatinine is high but narrative says normal"
+      ],
+      "timings_s": {
+        "intake": 4.53,
+        "ocr": 8.13,
+        "summary": 11.57,
+        "interpret": 0.09,
+        "intake_qa": 0.01
+      },
+      "total_s": 24.33,
+      "audit": {
+        "session.created": "lang=hi",
+        "stage.intake.done": "pages=2 rescan=0 docs=2 text_layer=0",
+        "stage.ocr.done": "engine=paddleocr fields=22 low_conf=7 pages=2 ocr_pages=2 text_layer=0 cached=0 skipped=0 load_s=6.73 ocr_s=1.24",
+        "stage.summary.done": "impl=ollama_llm multimodal=False images=0 findings=2 image_only=0 faithfulness=1.00 issues=0",
+        "stage.interpret.done": "table=labqar-550-v1 flagged=9 counts={'low': 1, 'normal': 4, 'high': 1, 'critical': 0, 'unknown': 3} needs_review=3 recovered_from_ocr=7 (Serum Sodium,Serum Potassium,Serum Chlorides,IONIC CALCIUM,Glycosylated Hb % (Hb A1c),To,Estimated Average Glucose (eAG)) narrative_contradictions=1 (Creatinine is high but narrative says normal)",
+        "stage.intake_qa.done": "bank=17 asked=5 categories={'condition_follow_up': 1, 'standard_history': 4}"
+      },
+      "error": null,
+      "force_ocr": true
+    },
+    {
+      "pdf": "test3.pdf",
+      "pages": 1,
+      "truth_values": 2,
+      "extracted_values": 3,
+      "recall": 1.0,
+      "name_matched": 2,
+      "value_correct": 2,
+      "value_accuracy": 1.0,
+      "misreads": [],
+      "missed": [],
+      "summary_findings": 3,
+      "summary_coverage": 1.5,
+      "flags": 3,
+      "flag_counts": {
+        "low": 0,
+        "normal": 1,
+        "high": 0,
+        "critical": 0,
+        "unknown": 2
+      },
+      "narrative_chars": 236,
+      "narrative_review": [],
+      "timings_s": {
+        "intake": 2.08,
+        "ocr": 1.68,
+        "summary": 11.44,
+        "interpret": 0.0,
+        "intake_qa": 0.0
+      },
+      "total_s": 15.2,
+      "audit": {
+        "session.created": "lang=hi",
+        "stage.intake.done": "pages=1 rescan=0 docs=1 text_layer=0",
+        "stage.ocr.done": "engine=paddleocr fields=9 low_conf=9 pages=1 ocr_pages=1 text_layer=0 cached=0 skipped=0 load_s=0.89 ocr_s=0.64",
+        "stage.summary.done": "impl=ollama_llm multimodal=False images=0 findings=3 image_only=0 faithfulness=1.00 issues=0",
+        "stage.interpret.done": "table=labqar-550-v1 flagged=3 counts={'low': 0, 'normal': 1, 'high': 0, 'critical': 0, 'unknown': 2} needs_review=2 recovered_from_ocr=0 narrative_contradictions=0",
+        "stage.intake_qa.done": "bank=17 asked=5 categories={'standard_history': 5}"
+      },
+      "error": null,
+      "force_ocr": true
+    }
+  ]
+}

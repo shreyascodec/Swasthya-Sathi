@@ -1,0 +1,30 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# runtime / session artifacts
+_session_data/
+db/*.sqlite3
+db/*.sqlite3-*
+
+# model weights (fetched at build or mounted; never commit)
+weights/
+*.gguf
+*.onnx
+*.pt
+*.bin
+
+# frontend: deps and build output are produced by `npm ci && npm run build`.
+# dist/ is what the FastAPI backend serves in production (server/main.py mounts
+# it at "/"), so it must exist ON THE KIOSK — but it is rebuilt, never committed.
+frontend/node_modules/
+frontend/dist/
+
+.pytest_cache/
+.DS_Store
+
+# Documentation is kept out of the published repository (internal notes,
+# benchmark results and licensing analysis are tracked separately).
+*.md

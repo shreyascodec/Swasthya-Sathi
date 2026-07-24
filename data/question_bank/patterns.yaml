@@ -1,0 +1,149 @@
+# Intake question bank — Phase 6.
+#
+# Clinician-reviewable intake question PATTERNS. The stage may only phrase/
+# translate a pattern from THIS bank; it may never invent a question (product
+# invariant). Deterministic triggers over the extracted data pick the top few.
+#
+# Each pattern:
+#   id           stable identifier
+#   category     gap | missing_report | condition_follow_up | standard_history
+#   priority     higher = surfaced first (grounded/condition questions outrank
+#                generic history)
+#   trigger      structured condition (interpreted by intake_qa_rules.py):
+#                  {type: always}
+#                  {type: lab_status, analytes: [...], statuses: [...]}
+#                  {type: missing_test, need: <analyte>, when_analytes: [...],
+#                     when_statuses: [...]}
+#                  {type: stale_report}          # uses intake_qa.stale_report_months
+#                  {type: has_medication}
+#   text_en / text_hi   templates; {slots} filled from data only ({analyte},
+#                       {value}, {unit}, {date}, {drug})
+#
+# Templates are pre-translated per language, so rendering is deterministic — the
+# model is not required to produce question text (the strongest off-bank guardrail).
+
+version: poc-1
+patterns:
+  # --- condition follow-up (grounded in a flagged value) --------------------
+  - id: cond_high_glucose
+    category: condition_follow_up
+    priority: 90
+    trigger: {type: lab_status, analytes: ["glucose fasting", "hba1c"], statuses: [high, critical]}
+    text_en: "Your {analyte} is {value} {unit}, which is high. Are you being treated for diabetes, and are you on any medication for it?"
+    text_hi: "आपका {analyte} {value} {unit} है, जो अधिक है। क्या आपका मधुमेह का इलाज चल रहा है और क्या आप इसके लिए कोई दवा ले रहे हैं?"
+
+  - id: cond_renal
+    category: condition_follow_up
+    priority: 88
+    trigger: {type: lab_status, analytes: ["creatinine", "urea"], statuses: [high, critical]}
+    text_en: "Your {analyte} is {value} {unit}, which is high. Do you have any known kidney problem, or do you take painkillers regularly?"
+    text_hi: "आपका {analyte} {value} {unit} है, जो अधिक है। क्या आपको गुर्दे की कोई समस्या है, या क्या आप नियमित रूप से दर्द निवारक दवा लेते हैं?"
+
+  - id: cond_anemia
+    category: condition_follow_up
+    priority: 85
+    trigger: {type: lab_status, analytes: ["hemoglobin"], statuses: [low, critical]}
+    text_en: "Your hemoglobin is {value} {unit}, which is low. Do you often feel tired, weak, or short of breath?"
+    text_hi: "आपका हीमोग्लोबिन {value} {unit} है, जो कम है। क्या आप अक्सर थकान, कमजोरी या सांस फूलने का अनुभव करते हैं?"
+
+  - id: cond_liver
+    category: condition_follow_up
+    priority: 80
+    trigger: {type: lab_status, analytes: ["sgpt", "bilirubin total"], statuses: [high, critical]}
+    text_en: "Your {analyte} is {value} {unit}, which is high. Do you drink alcohol, or take any regular medicines or supplements?"
+    text_hi: "आपका {analyte} {value} {unit} है, जो अधिक है। क्या आप शराब पीते हैं, या कोई नियमित दवा या सप्लीमेंट लेते हैं?"
+
+  - id: cond_lipid
+    category: condition_follow_up
+    priority: 75
+    trigger: {type: lab_status, analytes: ["total cholesterol", "triglycerides"], statuses: [high, critical]}
+    text_en: "Your {analyte} is {value} {unit}, which is high. Do you have chest pain, or a family history of heart disease?"
+    text_hi: "आपका {analyte} {value} {unit} है, जो अधिक है। क्या आपको सीने में दर्द होता है, या परिवार में हृदय रोग का इतिहास है?"
+
+  - id: cond_thyroid
+    category: condition_follow_up
+    priority: 74
+    trigger: {type: lab_status, analytes: ["tsh"], statuses: [high, low, critical]}
+    text_en: "Your TSH is {value} {unit}. Are you taking any thyroid medicine?"
+    text_hi: "आपका TSH {value} {unit} है। क्या आप थायरॉइड की कोई दवा ले रहे हैं?"
+
+  - id: cond_vit_d_low
+    category: condition_follow_up
+    priority: 60
+    trigger: {type: lab_status, analytes: ["vitamin d"], statuses: [low]}
+    text_en: "Your vitamin D is {value} {unit}, which is low. Do you get regular sun exposure, or take any vitamin D supplement?"
+    text_hi: "आपका विटामिन डी {value} {unit} है, जो कम है। क्या आपको नियमित धूप मिलती है, या आप विटामिन डी सप्लीमेंट लेते हैं?"
+
+  - id: cond_b12_low
+    category: condition_follow_up
+    priority: 60
+    trigger: {type: lab_status, analytes: ["vitamin b12"], statuses: [low]}
+    text_en: "Your vitamin B12 is {value} {unit}, which is low. Are you vegetarian, or do you take a B12 supplement?"
+    text_hi: "आपका विटामिन बी12 {value} {unit} है, जो कम है। क्या आप शाकाहारी हैं, या बी12 सप्लीमेंट लेते हैं?"
+
+  # --- gap (time / continuity) ---------------------------------------------
+  - id: gap_stale_report
+    category: gap
+    priority: 70
+    trigger: {type: stale_report}
+    text_en: "Your most recent report is from {date}. Have you had any tests done since then?"
+    text_hi: "आपकी सबसे हाल की रिपोर्ट {date} की है। क्या उसके बाद आपने कोई जांच कराई है?"
+
+  # --- missing companion test ----------------------------------------------
+  - id: missing_hba1c
+    category: missing_report
+    priority: 72
+    trigger: {type: missing_test, need: "hba1c", when_analytes: ["glucose fasting"], when_statuses: [high, critical]}
+    text_en: "Your fasting glucose is high but there is no HbA1c result. Has your HbA1c been checked in the last 3 months?"
+    text_hi: "आपका फास्टिंग ग्लूकोज अधिक है लेकिन HbA1c का परिणाम नहीं है। क्या पिछले 3 महीनों में आपका HbA1c जांचा गया है?"
+
+  - id: missing_lipid_for_diabetes
+    category: missing_report
+    priority: 55
+    trigger: {type: missing_test, need: "total cholesterol", when_analytes: ["glucose fasting", "hba1c"], when_statuses: [high, critical]}
+    text_en: "Your sugar is high but there is no cholesterol result. Has your lipid profile been checked recently?"
+    text_hi: "आपकी शुगर अधिक है लेकिन कोलेस्ट्रॉल का परिणाम नहीं है। क्या हाल ही में आपकी लिपिड प्रोफ़ाइल जांची गई है?"
+
+  # --- medication context ---------------------------------------------------
+  - id: med_adherence
+    category: condition_follow_up
+    priority: 65
+    trigger: {type: has_medication}
+    text_en: "Your report mentions {drug}. Are you taking it regularly as prescribed?"
+    text_hi: "आपकी रिपोर्ट में {drug} का उल्लेख है। क्या आप इसे नियमित रूप से बताए अनुसार ले रहे हैं?"
+
+  # --- standard history (always eligible; low priority fillers) -------------
+  - id: std_chief_complaint
+    category: standard_history
+    priority: 40
+    trigger: {type: always}
+    text_en: "What is the main health problem you have come for today?"
+    text_hi: "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?"
+
+  - id: std_current_meds
+    category: standard_history
+    priority: 35
+    trigger: {type: always}
+    text_en: "Are you currently taking any medicines? If yes, which ones?"
+    text_hi: "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?"
+
+  - id: std_symptom_duration
+    category: standard_history
+    priority: 30
+    trigger: {type: always}
+    text_en: "How long have you had your current symptoms?"
+    text_hi: "आपके वर्तमान लक्षण कब से हैं?"
+
+  - id: std_allergies
+    category: standard_history
+    priority: 28
+    trigger: {type: always}
+    text_en: "Do you have any known allergies to medicines or food?"
+    text_hi: "क्या आपको दवा या भोजन से कोई ज्ञात एलर्जी है?"
+
+  - id: std_chronic_conditions
+    category: standard_history
+    priority: 25
+    trigger: {type: always}
+    text_en: "Do you have any long-term conditions such as diabetes, blood pressure, or thyroid problems?"
+    text_hi: "क्या आपको मधुमेह, रक्तचाप या थायरॉइड जैसी कोई दीर्घकालिक बीमारी है?"

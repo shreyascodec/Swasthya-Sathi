@@ -1,0 +1,229 @@
+{
+  "generated_at": "2026-07-16T10:24:43+00:00",
+  "env": "dev_4060",
+  "is_sample": false,
+  "sample_note": "Real measurements.",
+  "dataset": {
+    "n": 16,
+    "langs": {
+      "en": 8,
+      "hi": 8
+    }
+  },
+  "models": [
+    {
+      "name": "airavata-7b",
+      "impl": "transformers_llm",
+      "runtime": "transformers",
+      "model_id": "ai4bharat/Airavata",
+      "is_stub": false,
+      "vram_budget_mb": 4500,
+      "vram_measured_mb": 4500,
+      "metrics": {
+        "faithfulness": 1.0,
+        "hallucination_rate": 0.0,
+        "faithfulness_pass_rate": 1.0,
+        "extraction_precision": 0.0,
+        "extraction_recall": 0.0,
+        "extraction_f1": 0.0,
+        "hindi_quality": 0.0,
+        "latency_s_mean": 128.8621,
+        "latency_s_p90": 126.1349
+      },
+      "per_item": [
+        {
+          "id": "rpt_00_en",
+          "lang": "en",
+          "latency_s": 100.3657,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_00_hi",
+          "lang": "hi",
+          "latency_s": 95.277,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_01_en",
+          "lang": "en",
+          "latency_s": 122.6642,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_01_hi",
+          "lang": "hi",
+          "latency_s": 123.0012,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_02_en",
+          "lang": "en",
+          "latency_s": 111.2047,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_02_hi",
+          "lang": "hi",
+          "latency_s": 83.2693,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_03_en",
+          "lang": "en",
+          "latency_s": 375.6363,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_03_hi",
+          "lang": "hi",
+          "latency_s": 127.7542,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_04_en",
+          "lang": "en",
+          "latency_s": 115.5197,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_04_hi",
+          "lang": "hi",
+          "latency_s": 115.1231,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_05_en",
+          "lang": "en",
+          "latency_s": 116.5296,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_05_hi",
+          "lang": "hi",
+          "latency_s": 109.4185,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_06_en",
+          "lang": "en",
+          "latency_s": 110.7371,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_06_hi",
+          "lang": "hi",
+          "latency_s": 109.3839,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        },
+        {
+          "id": "rpt_07_en",
+          "lang": "en",
+          "latency_s": 121.3932,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": null
+        },
+        {
+          "id": "rpt_07_hi",
+          "lang": "hi",
+          "latency_s": 124.5155,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "hindi_quality": 0.0
+        }
+      ]
+    }
+  ]
+}

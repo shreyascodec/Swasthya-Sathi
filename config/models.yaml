@@ -1,0 +1,123 @@
+# Per-stage model registry. THIS is where model bench-swapping happens:
+# changing a stage's model is an edit here, never a code change.
+#
+# Each logical model has a `primary` spec and optional `candidates` for the
+# bake-off. ModelManager resolves `impl` -> a registered adapter in models/.
+#
+# PHASE 0 NOTE: stages are no-ops and do not load these yet. The real specs
+# below are the target registry; the `dummy_*` entries at the bottom back the
+# VRAM load/unload proof and the harness until real adapters land per phase.
+
+ocr:
+  # Swap `primary.impl` to bench engines: paddleocr | surya | stub_ocr.
+  # stub_ocr needs no heavy deps (CPU / no-GPU / offline demo fallback).
+  # English-only: ~99% of reports are pure English; stray Hindi notes are not
+  # worth the Devanagari misreads on English text.
+  # Speed knobs (ocrplan.md Phase 1): mobile PP-OCRv5 det/rec (2-4x faster than
+  # the server default on printed English), textline-orientation off (intake
+  # already deskews), detection input capped at 1280 px. enable_mkldnn stays
+  # false on this machine (paddle 3.x oneDNN/PIR Windows crash) — flip it on
+  # hosts where it works for ~2-3x CPU speedup. keep_warm: true skips the
+  # unload after each run (engine re-init saved; GPU policy still evicts it
+  # before the LLM loads).
+  primary: {impl: paddleocr, lang: [en], device: cuda, precision: fp16, vram_mb: 1024,
+            det_model: PP-OCRv5_mobile_det, rec_model: PP-OCRv5_mobile_rec,
+            det_limit_side_len: 1280, use_textline_orientation: false,
+            enable_mkldnn: false, keep_warm: false}
+  fallback: {impl: surya, device: cuda, lang: [en], vram_mb: 1536}
+  stub: {impl: stub_ocr, device: cpu}
+
+image_tag:
+  # Swap primary.impl to bench: mobilenetv3 | imagetag_medgemma | stub_imagetag.
+  #
+  # VARIANT (poc testing2): primary = MobileNetV3-Small with the fine-tuned
+  # 4-class head. Typing an image is a 4-way classification, not a job for a 4B
+  # language model: ~0.05 s vs ~13 s per image and 200 MB vs 3.7 GB VRAM, which
+  # removed image_tag as the pipeline's slowest stage (38.9 s -> ~0.2 s).
+  #
+  # The checkpoint is trained on the SYNTHETIC bench set (procedural placeholders,
+  # no real pathology) — it is validated plumbing, NOT a clinically validated
+  # tagger. Retrain on real consented images before any clinical claim:
+  #     python -m bench.train_imagetag
+  # The trained head has a 5th "other" logit (junk / scanned report pages / flat
+  # fields) that the adapter maps to "unknown", so non-clinical input is rejected
+  # instead of being forced into one of the four types.
+  primary: {impl: mobilenetv3, classes: [skin, eye, wound, oral], device: cuda, vram_mb: 200,
+            weights: models/weights/imagetag_mobilenet_v3s.pt}
+  # MedGemma-4B zero-shot vision typing — no checkpoint needed, but ~65x slower.
+  # Keep as the fallback for real clinical photos until the head is retrained on
+  # real data, since zero-shot generalizes where a synthetic-trained head may not.
+  medgemma: {impl: imagetag_medgemma, model: "google/medgemma-4b-it", quant: int4, classes: [skin, eye, wound, oral], device: cuda, vram_mb: 3700}
+  stub: {impl: stub_imagetag, device: cpu, classes: [skin, eye, wound, oral]}
+
+llm:
+  # VARIANT (poc testing2): primary = Qwen2.5-3B-Instruct (text-only, via
+  # Ollama) — this pipeline generates the summary from OCR text alone
+  # (summary.use_images is off in stages.yaml). ~9 s single-report latency.
+  # On CPU / no-deps the stage falls back to stub_llm automatically.
+  primary: {impl: ollama_llm, model: "qwen2.5:3b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 2600, instruct: true}
+  candidates:
+    - {name: qwen2.5-3b-instruct, impl: ollama_llm, model: "qwen2.5:3b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 2600, instruct: true}
+    - {name: sarvam-1-2b, impl: transformers_llm, model: "sarvamai/sarvam-1", runtime: transformers, quant: int4, device: cuda, vram_mb: 1800, instruct: false}
+    - {name: medgemma-4b, impl: transformers_llm, model: "google/medgemma-4b-it", runtime: transformers, quant: int4, device: cuda, vram_mb: 3200, instruct: true, gated: true}
+    - {name: airavata-7b, impl: transformers_llm, model: "ai4bharat/Airavata", runtime: transformers, quant: int4, device: cuda, vram_mb: 4500, instruct: true}
+  stub: {impl: stub_llm, device: cpu}
+
+stt:
+  # Phase 6 answer capture. Measured on three Hindi intake clips (chest pain /
+  # fracture / headache+Crocin), scoring recall of the clinically critical
+  # entities the pipeline actually consumes downstream:
+  #
+  #   whisper-large-v3-vaani-hindi  12/12 (100%)  RTF 0.19x   <- primary
+  #   stock large-v3                 9/12  (75%)  RTF 0.16x   <- non-Hindi fallback
+  #   IndicWhisper large-v2          8/12  (67%)  RTF 0.16x   (dropped content)
+  #   stock small                    4/12  (33%)  RTF 0.06x   <- language router
+  #
+  # RTF figures are dev_4060; Orin will be materially slower — re-measure there.
+  #
+  # WARNING: the Vaani fine-tune is HINDI-OUTPUT-ONLY. On English audio it
+  # transliterates into Devanagari and still reports language_probability 1.00,
+  # so it fails silently at maximum confidence. It must never be selected on
+  # language alone — see `router` below.
+  primary: {impl: faster-whisper, model_path: "models/weights/whisper-large-v3-vaani-hindi-ct2-int8",
+            compute: int8, device: cuda, vram_mb: 1800, lang: hi}
+
+  # Non-Hindi / mixed answers. Honest language ID and readable Latin output.
+  multilingual: {impl: faster-whisper, model_path: "models/weights/faster-whisper-large-v3",
+                 compute: int8, device: cuda, vram_mb: 2400}
+
+  # Cheap language verifier (0.06x RTF). The kiosk language selector picks the
+  # engine; this checks the patient actually spoke that language and flags a
+  # mismatch for review rather than letting a silent transliteration through.
+  router: {impl: faster-whisper, size: small, compute: int8, device: cpu, vram_mb: 500}
+
+  indic: {impl: ai4bharat-indicconformer}
+  stub: {impl: stub_stt, device: cpu}
+
+tts:
+  # Phase 7 voice — INDIC languages (Hindi primary).
+  # FINAL choice: KOKORO-82M Hindi — Apache-2.0 (COMMERCIAL-CLEAN, incl. voices),
+  # CPU-friendly (GPU-free), FAST (warm RTF ~0.02-0.03), listen-test passed.
+  # It replaced Piper on Hindi because every off-the-shelf Piper Hindi *voice* is
+  # non-commercial (CC-BY-NC-SA / IIT-M — the same MMS blocker); Piper's MIT engine
+  # is fine, its Hindi weights are not. See commercial.md §0 / record.md §9.
+  # Voices: hf_alpha/hf_beta (F), hm_omega/hm_psi (M).
+  primary: {impl: kokoro, device: cpu, vram_mb: 0, lang_code: h,
+            voice: hf_alpha, sample_rate: 24000}
+  stub: {impl: stub_tts, device: cpu, sample_rate: 22050}
+
+tts_en:
+  # Phase 7 voice — ENGLISH. Piper (VITS/ONNX, ~15M, CPU, ARM-native, realtime,
+  # zero GPU), permissively licensed. English routes here.
+  primary: {impl: piper, device: cpu, vram_mb: 0, voice: "models/weights/piper/en_US-lessac-medium.onnx"}
+  stub: {impl: stub_tts, device: cpu, sample_rate: 22050}
+
+avatar:
+  primary: {impl: wav2lip, enabled: false}   # DEFERRED — voice-only for now
+
+# --- Phase-0 scaffolding models (remove once real adapters exist) ----------
+dummy_heavy:
+  primary: {impl: dummy, device: cuda, size_mb: 2048}   # stands in for the LLM
+
+dummy_light:
+  primary: {impl: dummy, device: cpu, size_mb: 64}

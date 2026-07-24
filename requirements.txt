@@ -1,0 +1,89 @@
+# Swasthya Sathi POC — Phase 0 (skeleton & harness) dependencies.
+# Heavy per-stage libs (paddleocr, torch, faster-whisper, TTS, weasyprint, ...)
+# are added phase-by-phase per PLAN.md so the 8 GB laptop install stays lean.
+
+streamlit>=1.36
+pydantic>=2.7
+PyYAML>=6.0
+pytest>=8.0
+
+# Phase 1 — Intake & Preprocess (classical CV; no GPU, ARM-compatible)
+#
+# UPPER BOUNDS ARE LOAD-BEARING, not caution. opencv-python-headless 5.x requires
+# numpy>=2, while the verified stack (paddlepaddle 3.x + torch 2.6+cu126) runs on
+# numpy 1.26.4. With open ranges, `pip install -r requirements.txt` on a fresh
+# kiosk resolves opencv 5 against numpy 1.26 and `pip check` fails — the box that
+# was tested and the box that ships stop being the same machine.
+opencv-python-headless>=4.9,<5   # headless = no GUI libs; works on kiosk/cloud/ARM
+numpy>=1.26,<2
+PyMuPDF>=1.24                 # PDF page render (fitz); no external poppler needed
+
+# Phase 4 — Summary bake-off harness (charts for the stakeholder report)
+matplotlib>=3.8
+
+# Phase 2 — OCR (real engine). PaddleOCR 3.x + paddlepaddle.
+#
+# GPU STRONGLY RECOMMENDED (ocrplan.md / report.md §4.4a): the CPU wheel below
+# runs OCR ~60 s per 3-page session vs <1 s of GPU inference. Install the GPU
+# build instead, matching your CUDA:
+#     pip uninstall paddlepaddle
+#     pip install paddlepaddle-gpu==3.3.1 \
+#       -i https://www.paddlepaddle.org.cn/packages/stable/cu126/
+#
+# WINDOWS CUDA/cuDNN CONFLICT: paddle and torch each bundle their own cuDNN
+# DLLs under the SAME filenames. If their cuDNN majors/minors differ, whichever
+# imports second dies with "WinError 127 ... cudnn_cnn64_9.dll". Keep them on
+# the same CUDA line — this repo runs paddlepaddle-gpu cu126 + torch cu126
+# (both cuDNN 9.5.x); install torch with:
+#     pip install torch==2.6.0+cu126 torchvision==0.21.0+cu126 \
+#       --index-url https://download.pytorch.org/whl/cu126
+#
+# On CPU-only hosts the adapter keeps enable_mkldnn=False to avoid a
+# paddlepaddle 3.x oneDNN crash on Windows (flip ocr.primary.enable_mkldnn in
+# config/models.yaml where oneDNN works — worth ~2-3x on CPU).
+paddleocr>=3.7
+paddlepaddle>=3.3
+
+# Phase 4 — real LLM (MedGemma-4B multimodal, primary). Gated: huggingface-cli
+# login + accept the MedGemma license. bitsandbytes gives INT4 on the 4060.
+torch>=2.4
+# NOTE: transformers is pinned to ==4.49.0 at the bottom of this file; a second
+# `transformers>=4.44` used to sit here, which pip silently reconciled to the pin.
+# One requirement, one line — see the pin below for why 4.49.0.
+accelerate>=0.33
+bitsandbytes>=0.43
+# Qwen fast-swap alternative is served by Ollama (install Ollama, then
+# `ollama pull qwen2.5:3b-instruct`) — no pip dep.
+
+# Phase 6 — STT (answer capture)
+faster-whisper>=1.0
+
+# Phase 7 — TTS (voice) — see the Piper section below.
+
+# --- later phases ------------------------------------------------------------
+# weasyprint                 # Phase 9 PDF export
+
+# --- React UI backend (server/main.py) ---------------------------------------
+# FastAPI wraps the pipeline unchanged so the React frontend can drive it over
+# HTTP. python-multipart is required for file uploads.
+fastapi>=0.111
+uvicorn>=0.30
+python-multipart>=0.0.9
+
+# --- TTS: Kokoro (Hindi) + Piper (English) — the FINAL commercial-clean split --
+# Kokoro-82M (Apache-2.0, incl. Hindi voices) is the Hindi/Indic engine — it
+# replaced Piper on Hindi because every Piper Hindi *voice* is non-commercial
+# (CC-BY-NC-SA / IIT-M). Piper (MIT engine + MIT lessac voice) stays on English.
+# Both CPU-friendly and fast. See commercial.md §0 / record.md §9.
+kokoro>=0.9.4        # pulls in misaki (G2P) + torch
+piper-tts>=1.5       # English voice (en_US-lessac-medium, MIT)
+soundfile>=0.12      # audio I/O for the Kokoro path. Was only ever pulled in as
+                     # a transitive dep and referenced by a comment that pointed
+                     # at a line that did not exist — declared explicitly so the
+                     # offline kiosk install cannot silently lose it.
+
+# transformers/torchaudio were pinned for IndicF5 (now removed). They remain the
+# current known-good versions; nothing at runtime still needs 4.x, so a future
+# env may retry newer transformers, but leave these unless you re-test the stack.
+transformers==4.49.0
+torchaudio==2.6.0

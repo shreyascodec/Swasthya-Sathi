@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "generated_at": "2026-07-19T23:12:49+00:00",
+    "repo": "C:\\Users\\shrey\\OneDrive\\Desktop\\poc testing2",
+    "runs": 3,
+    "inputs": {
+      "report_pages": 2,
+      "clinical_images": 1
+    },
+    "llm_primary": {
+      "impl": "ollama_llm",
+      "model": "qwen2.5:3b-instruct"
+    },
+    "image_tag_primary": "imagetag_medgemma",
+    "voice_cfg": {
+      "speak_summary": false,
+      "speak_questions": true,
+      "translate_summary": false
+    },
+    "summary_use_images": false
+  },
+  "stages": [
+    {
+      "stage": "intake",
+      "runs_s": [
+        2.525,
+        2.388,
+        2.448
+      ],
+      "mean_s": 2.45,
+      "max_s": 2.525,
+      "detail": "pages=3 rescan=1"
+    },
+    {
+      "stage": "ocr",
+      "runs_s": [
+        68.967,
+        59.936,
+        59.811
+      ],
+      "mean_s": 62.9,
+      "max_s": 68.967,
+      "detail": "engine=paddleocr fields=19 low_conf=0"
+    },
+    {
+      "stage": "image_tag",
+      "runs_s": [
+        20.811,
+        18.116,
+        18.495
+      ],
+      "mean_s": 19.14,
+      "max_s": 20.811,
+      "detail": "impl=imagetag_medgemma tagged=3 types={'eye': 0, 'skin': 0, 'unknown': 3, 'wound': 0, 'oral': 0}"
+    },
+    {
+      "stage": "summary",
+      "runs_s": [
+        11.013,
+        10.982,
+        11.031
+      ],
+      "mean_s": 11.01,
+      "max_s": 11.031,
+      "detail": "impl=ollama_llm multimodal=False images=0 findings=4 image_only=0 faithfulness=1.00 issues=0"
+    },
+    {
+      "stage": "interpret",
+      "runs_s": [
+        0.083,
+        0.0,
+        0.0
+      ],
+      "mean_s": 0.03,
+      "max_s": 0.083,
+      "detail": "table=labqar-550-v1 flagged=4 counts={'low': 2, 'normal': 0, 'high': 2, 'critical': 0, 'unknown': 0} needs_review=0"
+    },
+    {
+      "stage": "intake_qa",
+      "runs_s": [
+        0.008,
+        0.0,
+        0.0
+      ],
+      "mean_s": 0.0,
+      "max_s": 0.008,
+      "detail": "bank=17 asked=5 categories={'condition_follow_up': 2, 'missing_report': 2, 'standard_history': 1}"
+    },
+    {
+      "stage": "voice",
+      "runs_s": [
+        19.116,
+        19.274,
+        19.601
+      ],
+      "mean_s": 19.33,
+      "max_s": 19.601,
+      "detail": "impl=mms_tts avatar_enabled=False clips=5 total_ms=38480"
+    },
+    {
+      "stage": "hashing",
+      "runs_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean_s": 0.0,
+      "max_s": 0.0,
+      "detail": ""
+    },
+    {
+      "stage": "report",
+      "runs_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "mean_s": 0.0,
+      "max_s": 0.0,
+      "detail": ""
+    },
+    {
+      "stage": "stt_answer",
+      "runs_s": [
+        6.681,
+        6.591,
+        6.61
+      ],
+      "mean_s": 6.63,
+      "max_s": 6.681,
+      "detail": "clip_ms=10144 chars=99"
+    }
+  ],
+  "pipeline_total_mean_s": 114.87
+}

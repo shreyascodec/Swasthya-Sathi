@@ -1,0 +1,89 @@
+{
+  "items": [
+    {
+      "path": "skin/skin_0.png",
+      "intended_type": "skin",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "skin/skin_1.png",
+      "intended_type": "skin",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "skin/skin_2_blur.png",
+      "intended_type": "skin",
+      "quality": "unusable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "wound/wound_0.png",
+      "intended_type": "wound",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "wound/wound_1.png",
+      "intended_type": "wound",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "wound/wound_2_blur.png",
+      "intended_type": "wound",
+      "quality": "unusable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "eye/eye_0.png",
+      "intended_type": "eye",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "eye/eye_1.png",
+      "intended_type": "eye",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "eye/eye_2_blur.png",
+      "intended_type": "eye",
+      "quality": "unusable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "oral/oral_0.png",
+      "intended_type": "oral",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "oral/oral_1.png",
+      "intended_type": "oral",
+      "quality": "usable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "oral/oral_2_blur.png",
+      "intended_type": "oral",
+      "quality": "unusable",
+      "note": "synthetic placeholder \u2014 no real pathology"
+    },
+    {
+      "path": "junk/junk_0.png",
+      "intended_type": "unknown",
+      "quality": "usable",
+      "note": "not a clinical image \u2014 guardrail test"
+    },
+    {
+      "path": "junk/junk_1.png",
+      "intended_type": "unknown",
+      "quality": "usable",
+      "note": "not a clinical image \u2014 guardrail test"
+    }
+  ],
+  "synthetic": true
+}

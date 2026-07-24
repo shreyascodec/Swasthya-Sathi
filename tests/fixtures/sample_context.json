@@ -1,0 +1,13 @@
+{
+  "session_id": "fixture000001",
+  "lang": "hi",
+  "uploads": [],
+  "image_tags": [],
+  "interpretations": [],
+  "questions": [],
+  "answers": [],
+  "audio_out": [],
+  "audit": [
+    {"actor": "system", "action": "session.created", "detail": "fixture"}
+  ]
+}
