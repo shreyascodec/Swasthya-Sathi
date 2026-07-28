@@ -106,19 +106,17 @@ export function LiveQA({
   const existing = answers[q.id];
 
   return (
-    <div className="card" style={{ padding: 20, marginTop: 16 }}>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h3>🎙 Live intake Q&amp;A</h3>
-        <span className="muted" style={{ fontSize: 13 }}>{answeredCount} of {total} answered</span>
+    <div className="card qa-card">
+      <div className="qa-topline">
+        <h2>🎙 A few quick questions</h2>
+        <span className="qa-count">{answeredCount} of {total} answered</span>
       </div>
       <div className="qa-progress"><div style={{ width: `${(answeredCount / total) * 100}%` }} /></div>
 
-      <div style={{ marginTop: 14, fontWeight: 600, color: existing ? "var(--pass)" : "var(--ink-3)", fontSize: 13 }}>
+      <div className={`qa-qmeta ${existing ? "answered" : ""}`}>
         {existing ? "✓ " : ""}Question {idx + 1} of {total}
       </div>
-      <div style={{ fontSize: 20, color: "var(--ink)", fontWeight: 700, margin: "4px 0 12px", lineHeight: 1.4 }}>
-        {q.rendered_text}
-      </div>
+      <div className="qa-question">{q.rendered_text}</div>
 
       {idx < clips.length ? (
         <audio ref={audioEl} key={`${snap.session_id}-${idx}`} src={fileUrl(clips[idx])}
@@ -127,26 +125,27 @@ export function LiveQA({
         <div className="cap">⚠ No audio clip for this question — text only.</div>
       )}
 
-      <div className="row" style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 18 }}>
         {!recording ? (
-          <button className="btn-primary" onClick={startRec} disabled={busy}>
-            {busy ? <><span className="spin">◍</span> Transcribing…</> : "● Record answer"}
+          <button className="btn-primary mic-btn" onClick={startRec} disabled={busy}>
+            {busy ? <><span className="spin">◍</span> Transcribing…</> : "● Tap to record your answer"}
           </button>
         ) : (
-          <button className="btn-warn" onClick={stopRec}>■ Stop &amp; transcribe</button>
+          <button className="mic-btn rec" onClick={stopRec}>
+            <span className="rec-dot" /> Recording — tap to stop
+          </button>
         )}
-        {recording && <span className="rec-dot" />}
       </div>
       {micError && <div className="cap" style={{ color: "var(--crit)" }}>{micError}</div>}
 
       {existing && (
-        <div className="banner ok" style={{ marginTop: 12 }}>
+        <div className="banner ok" style={{ marginTop: 14 }}>
           <span><b>Answer recorded:</b> {existing.transcript || "— (empty)"}</span>
           <span className="cap" style={{ margin: 0 }}>Record again to replace this answer.</span>
         </div>
       )}
 
-      <hr className="divider" style={{ margin: "18px 0" }} />
+      <hr className="divider" style={{ margin: "20px 0" }} />
       <div className="row">
         <button className="btn-ghost" onClick={() => setIdx((i) => i - 1)} disabled={idx === 0}>← Back</button>
         {!last && <button className="btn-ghost" onClick={() => setIdx((i) => i + 1)}>Skip</button>}
@@ -155,7 +154,7 @@ export function LiveQA({
           <button className="btn-primary" onClick={() => setIdx((i) => i + 1)}>Next question →</button>
         ) : (
           <button className="btn-primary" onClick={onContinue} disabled={busy}>
-            Continue → hashing &amp; report ▶
+            Finish &amp; seal report ▶
           </button>
         )}
       </div>

@@ -1,4 +1,0 @@
-model,runtime,vram_budget_mb,faithfulness,hallucination_rate,faithfulness_pass_rate,extraction_precision,extraction_recall,extraction_f1,hindi_quality,latency_s_mean,latency_s_p90
-qwen2.5-3b-instruct,ollama,2600,0.9893,0.0108,0.6667,0.5119,0.2341,0.2738,0.8244,8.8867,12.5974
-sarvam-1-2b,transformers,1800,0.6111,0.3889,0.1667,0.0,0.0,0.0,0.4978,35.4477,36.6651
-medgemma-4b,transformers,3200,1.0,0.0,1.0,0.6667,0.6667,0.6667,0.4928,85.6761,131.2612

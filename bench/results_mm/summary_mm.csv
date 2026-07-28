@@ -1,3 +1,0 @@
-condition,vram_peak_mb,faithfulness,hallucination_rate,extraction_f1,coverage,hindi_quality,vision_recovery,latency_s_mean,latency_s_p90,latency_s_max,latency_per_page_mean,budget_pass_rate
-text_only,3517,0.9945,0.0055,0.8333,0.8333,0.7599,0.0,69.5347,92.047,113.9683,25.8604,0.8333
-text+image,3703,0.9899,0.0101,0.8333,0.8333,0.597,0.8333,60.913,71.6456,73.1938,23.3071,1.0

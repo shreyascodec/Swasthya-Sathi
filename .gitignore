@@ -25,6 +25,3 @@ frontend/dist/
 .pytest_cache/
 .DS_Store
 
-# Documentation is kept out of the published repository (internal notes,
-# benchmark results and licensing analysis are tracked separately).
-*.md

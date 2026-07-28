@@ -65,10 +65,27 @@ export interface Snapshot {
   };
 }
 
+export interface Readiness {
+  ready: boolean;
+  warming: boolean;
+  loaded: string[];
+  unavailable: string[];
+  seconds: number | null;
+  sessions: number;
+}
+
 async function j<T>(r: Response): Promise<T> {
   if (!r.ok) {
-    const body = await r.text();
-    throw new Error(`${r.status}: ${body}`);
+    // The backend returns { error: { type, message, detail? } }; fall back to
+    // text so an old/unexpected response still yields something readable.
+    let msg = `HTTP ${r.status}`;
+    try {
+      const body = await r.json();
+      msg = body?.error?.message || body?.detail || JSON.stringify(body);
+    } catch {
+      try { msg = (await r.text()) || msg; } catch { /* keep default */ }
+    }
+    throw new Error(msg);
   }
   return r.json() as Promise<T>;
 }
@@ -82,6 +99,8 @@ export const api = {
     }).then(j<Snapshot>),
 
   getSession: (sid: string) => fetch(`/api/session/${sid}`).then(j<Snapshot>),
+
+  getReady: () => fetch("/api/ready").then(j<Readiness>),
 
   upload: (sid: string, files: File[]) => {
     const fd = new FormData();

@@ -1,0 +1,50 @@
+# Swasthya Sathi — kiosk service (Linux / Jetson Orin).
+#
+# Installs the point-of-care server as a systemd service that starts on boot and
+# restarts on crash — the two things a kiosk actually needs. It serves the built
+# SPA and the API from one origin on :8000 (single self-contained box).
+#
+# Install:
+#   1. Build the UI once:   cd frontend && npm ci && npm run build
+#   2. Edit the paths + user below to match the box.
+#   3. sudo cp deploy/swasthya-sathi.service /etc/systemd/system/
+#      sudo systemctl daemon-reload
+#      sudo systemctl enable --now swasthya-sathi
+#   4. Logs:  journalctl -u swasthya-sathi -f
+#
+# Assumes Ollama runs as its own service (the summary model). If Ollama is also
+# systemd-managed, keep the After=/Wants= lines so this starts after it.
+
+[Unit]
+Description=Swasthya Sathi kiosk (point-of-care lab-report pipeline)
+After=network-online.target ollama.service
+Wants=network-online.target
+# If Ollama is not a systemd unit on this box, drop ollama.service from After=.
+
+[Service]
+Type=simple
+User=kiosk
+Group=kiosk
+WorkingDirectory=/opt/swasthya-sathi
+
+# Engine profile (hardware) + server knobs. See .env.example for the full list.
+Environment=SS_ENV=orin
+Environment=SS_HOST=127.0.0.1
+Environment=SS_PORT=8000
+Environment=SS_LOG_LEVEL=INFO
+Environment=SS_WARMUP=1
+# Single origin in production: the SPA is served from this process, so no CORS.
+Environment=SS_ALLOWED_ORIGINS=
+# Or load everything from a file instead of the lines above:
+# EnvironmentFile=/opt/swasthya-sathi/.env
+
+ExecStart=/opt/swasthya-sathi/.venv/bin/python -m uvicorn server.main:app --host 127.0.0.1 --port 8000
+
+Restart=always
+RestartSec=3
+# Give warmup time before a stuck start is considered failed.
+TimeoutStartSec=180
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

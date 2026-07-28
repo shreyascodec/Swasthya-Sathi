@@ -16,11 +16,18 @@ Run:  uvicorn server.main:app --port 8000
 
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import mimetypes
 import re
+import shutil
+import threading
 import time
 import uuid
 from collections import OrderedDict
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -28,26 +35,112 @@ if TYPE_CHECKING:
     from collections import OrderedDict as OrderedDictType  # noqa: F401
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import models  # noqa: F401  (registers model adapters)
 from core.context import SessionContext, UploadedFile
+from core.model_manager import VRAMBudgetError
 from core.pipeline import Pipeline, new_session
+from server.config import ServerConfig
+from server.logconf import configure_logging
+from server.warmup import new_readiness, start_warmup_thread
 from stages import imaging
 
-app = FastAPI(title="Swasthya Sathi API")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+APP_VERSION = "1.0.0"
+
+CFG = ServerConfig.from_env()
+configure_logging(CFG.log_level)
+log = logging.getLogger("swasthya.server")
 
 # One shared pipeline (models are loaded/unloaded per stage inside it).
 PIPELINE = Pipeline()
 DATA_DIR = Path(PIPELINE.config.env.data_dir).resolve()
+
+# Single kiosk, single GPU: all pipeline work is serialized through this lock so
+# warmup and two overlapping requests can never touch ModelManager at once.
+PIPELINE_LOCK = threading.Lock()
+
+# Warmup progress, published to GET /api/ready and mutated by the warmup thread.
+READINESS = new_readiness()
+
+# Reaper cadence — how often idle sessions (and their data dirs) are swept.
+_REAP_INTERVAL_S = 120
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    log.info(
+        "starting Swasthya Sathi v%s — env=%s device=%s data_dir=%s",
+        APP_VERSION, PIPELINE.config.env.name, PIPELINE.config.env.device, DATA_DIR,
+    )
+    _sweep_orphan_dirs()  # crash recovery: drop stale session dirs from a prior run
+    if CFG.warmup:
+        start_warmup_thread(PIPELINE, PIPELINE_LOCK, READINESS)
+    else:
+        READINESS.update(ready=True, warming=False, seconds=0.0)
+        log.info("warmup disabled (SS_WARMUP=0) — models load on first use")
+    reaper = asyncio.create_task(_reaper_loop())
+    try:
+        yield
+    finally:
+        reaper.cancel()
+        with PIPELINE_LOCK:
+            PIPELINE.models.release_all()
+        log.info("shutdown complete — models released")
+
+
+app = FastAPI(title="Swasthya Sathi API", version=APP_VERSION, lifespan=lifespan)
+if CFG.allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CFG.allowed_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+@app.middleware("http")
+async def _log_requests(request: Request, call_next):
+    t0 = time.time()
+    response = await call_next(request)
+    dt = (time.time() - t0) * 1000
+    # Skip the noisy static/media chatter; log the API surface.
+    if request.url.path.startswith("/api"):
+        log.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, dt)
+    return response
+
+
+def _err(status: int, type_: str, message: str, detail=None) -> JSONResponse:
+    body: dict = {"error": {"type": type_, "message": message}}
+    if detail is not None:
+        body["error"]["detail"] = detail
+    return JSONResponse(status_code=status, content=body)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _handle_http(request: Request, exc: StarletteHTTPException):
+    return _err(exc.status_code, "http_error", str(exc.detail))
+
+
+@app.exception_handler(RequestValidationError)
+async def _handle_validation(request: Request, exc: RequestValidationError):
+    return _err(422, "validation_error", "Invalid request.", detail=str(exc.errors()))
+
+
+@app.exception_handler(VRAMBudgetError)
+async def _handle_vram(request: Request, exc: VRAMBudgetError):
+    log.error("VRAM budget exceeded: %s", exc)
+    return _err(503, "model_unavailable", "The device is out of GPU memory for this model. Try again in a moment.")
+
+
+@app.exception_handler(Exception)
+async def _handle_unexpected(request: Request, exc: Exception):
+    log.exception("unhandled error on %s %s", request.method, request.url.path)
+    return _err(500, "internal_error", "Something went wrong on the kiosk. Start a new session and try again.")
 
 
 class _Session:
@@ -61,6 +154,7 @@ class _Session:
         }
         self.next_idx = 0
         self.paused: dict | None = None
+        self.last_activity: float = time.time()
 
 
 #: Live sessions, most-recently-created last. Capped so a kiosk running all day
@@ -68,20 +162,123 @@ class _Session:
 #: (audit log, summary, answers). The oldest are evicted once past the cap; a
 #: patient interaction is short and single, so eviction never hits an active one.
 SESSIONS: "OrderedDict[str, _Session]" = OrderedDict()
-MAX_SESSIONS = 64
+
+_SID_RE = re.compile(r"^[0-9a-f]{12}$")  # session ids are 12 hex chars (new_session)
+
+
+def _session_dir(sid: str) -> Path:
+    return DATA_DIR / sid
+
+
+def _delete_session_dir(sid: str) -> None:
+    """Remove a session's on-disk artifacts (uploads, audio, report). Privacy:
+    a finished/abandoned patient must not linger on the kiosk."""
+    d = _session_dir(sid)
+    if d.is_dir():
+        shutil.rmtree(d, ignore_errors=True)
+        log.info("cleaned data dir for session %s", sid)
 
 
 def _remember(s: _Session) -> None:
     SESSIONS[s.ctx.session_id] = s
-    while len(SESSIONS) > MAX_SESSIONS:
-        SESSIONS.popitem(last=False)  # evict oldest
+    while len(SESSIONS) > CFG.max_sessions:
+        old_sid, _ = SESSIONS.popitem(last=False)  # evict oldest
+        _delete_session_dir(old_sid)
 
 
 def _sess(sid: str) -> _Session:
     s = SESSIONS.get(sid)
     if s is None:
         raise HTTPException(404, f"unknown session {sid}")
+    s.last_activity = time.time()
+    SESSIONS.move_to_end(sid)  # keep LRU order honest so the reaper/cap are fair
     return s
+
+
+# --- session lifecycle: idle reaper + crash-recovery sweep -------------------
+
+def _reap_idle_sessions() -> None:
+    cutoff = time.time() - CFG.session_ttl_seconds
+    stale = [sid for sid, s in SESSIONS.items() if s.last_activity < cutoff]
+    for sid in stale:
+        SESSIONS.pop(sid, None)
+        _delete_session_dir(sid)
+    if stale:
+        log.info("reaped %d idle session(s)", len(stale))
+
+
+async def _reaper_loop() -> None:
+    while True:
+        await asyncio.sleep(_REAP_INTERVAL_S)
+        try:
+            _reap_idle_sessions()
+        except Exception:  # noqa: BLE001 — a reaper crash must not kill the server
+            log.exception("session reaper error")
+
+
+def _sweep_orphan_dirs() -> None:
+    """On startup, drop session data dirs left by a prior process that are older
+    than the TTL. In-memory sessions never survive a restart, so any such dir is
+    orphaned PHI."""
+    if not DATA_DIR.is_dir():
+        return
+    cutoff = time.time() - CFG.session_ttl_seconds
+    for d in DATA_DIR.iterdir():
+        try:
+            if d.is_dir() and _SID_RE.match(d.name) and d.stat().st_mtime < cutoff:
+                shutil.rmtree(d, ignore_errors=True)
+                log.info("swept orphan session dir %s", d.name)
+        except OSError:
+            continue
+
+
+# --- friendly stage-error text + report persistence --------------------------
+
+def _friendly_stage_error(stage_name: str, exc: Exception) -> str:
+    """Operator-facing message for a stage crash. The raw exception stays in the
+    server log and in the stage `note`; the banner gets guidance, not a traceback."""
+    label = STAGE_TITLES.get(stage_name, stage_name)
+    text = str(exc).lower()
+    if isinstance(exc, VRAMBudgetError):
+        return f"“{label}” could not load its model — the device is out of GPU memory. Retry in a moment, or restart the kiosk."
+    if "connection" in text or "connect" in text or "ollama" in text:
+        return f"“{label}” could not reach its model service (is Ollama running?). Retry, or stop and start over."
+    if "not found" in text or "no such file" in text or "missing" in text:
+        return f"“{label}” is missing a required model file on this device. Stop and check the install."
+    return f"The “{label}” step failed and the run was halted. Retry the step, or stop and start a new session."
+
+
+# Human labels for stages, used in friendly errors and pause banners.
+STAGE_TITLES = {
+    "intake": "Intake & image quality", "ocr": "Text extraction (OCR)",
+    "image_tag": "Image tagging", "summary": "Report summary",
+    "interpret": "Lab interpretation", "intake_qa": "Intake questions",
+    "voice": "Voice generation", "hashing": "Integrity hashing", "report": "Final report",
+}
+
+
+def _persist_report(s: _Session) -> None:
+    """Write the sealed report as report_v<n>.json into the session data dir — a
+    durable, PHI-free-audit-adjacent artifact without standing up a database."""
+    if not (CFG.persist_reports and s.ctx.report):
+        return
+    rep = s.ctx.report
+    d = _session_dir(s.ctx.session_id)
+    d.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "session_id": s.ctx.session_id,
+        "version": rep.version,
+        "sha256": rep.sha256,
+        "sealed_at": datetime.now(timezone.utc).isoformat(),
+        "content": rep.content,
+    }
+    try:
+        (d / f"report_v{rep.version}.json").write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        log.info("persisted report v%s for session %s", rep.version, s.ctx.session_id)
+    except OSError as e:
+        log.warning("could not persist report for %s: %s", s.ctx.session_id, e)
 
 
 # --- derived views (mirror the Streamlit renderers) --------------------------
@@ -325,7 +522,25 @@ class NewSessionBody(BaseModel):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"ok": True, "env": PIPELINE.config.env.name}
+    """Liveness — the process is up and serving. Answers immediately, even while
+    models are still warming."""
+    return {"ok": True, "version": APP_VERSION, "env": PIPELINE.config.env.name,
+            "device": PIPELINE.config.env.device}
+
+
+@app.get("/api/ready")
+def ready() -> dict:
+    """Readiness — have the models been warmed? The kiosk UI holds the Process
+    button until this reports ready, so the first patient isn't hit with cold
+    model loads."""
+    return {
+        "ready": READINESS["ready"],
+        "warming": READINESS["warming"],
+        "loaded": READINESS["loaded"],
+        "unavailable": READINESS["unavailable"],
+        "seconds": READINESS["seconds"],
+        "sessions": len(SESSIONS),
+    }
 
 
 @app.post("/api/session")
@@ -372,11 +587,14 @@ def run_stage(sid: str) -> dict:
     info = s.stages[stage.name]
     t0 = time.time()
     try:
-        s.ctx = PIPELINE.run_stage(stage.name, s.ctx)
+        with PIPELINE_LOCK:  # single GPU / single worker: serialize all stage runs
+            s.ctx = PIPELINE.run_stage(stage.name, s.ctx)
         info["elapsed"] = round(time.time() - t0, 1)
         info["status"] = "done"
         info["note"] = _stage_note(stage.name, s.ctx)
         s.next_idx += 1
+        if stage.name == "report":
+            _persist_report(s)
 
         # Gate: hold after [7] voice for the live intake Q&A. Voice is what
         # synthesises the question audio, so the Q&A cannot run earlier and still
@@ -411,11 +629,12 @@ def run_stage(sid: str) -> dict:
                               + ", ".join(_display_name(u) for u in bad),
                 }
     except Exception as e:  # noqa: BLE001
+        log.exception("stage '%s' failed for session %s", stage.name, sid)
         info["elapsed"] = round(time.time() - t0, 1)
         info["status"] = "error"
-        info["note"] = f"{type(e).__name__}: {e}"
+        info["note"] = f"{type(e).__name__}: {e}"  # technical detail kept for the operator panel
         s.paused = {"kind": "error", "stage": stage.name,
-                    "detail": f"{type(e).__name__}: {e}"}
+                    "detail": _friendly_stage_error(stage.name, e)}
     return _snapshot(sid)
 
 
@@ -460,7 +679,8 @@ async def answer(sid: str, question_id: str = Form(...), file: UploadFile = File
     ext = Path(file.filename or "answer.webm").suffix or ".webm"
     dest = audio_dir / f"{idx:02d}_answer{ext}"
     dest.write_bytes(await file.read())
-    stage.capture_answer(s.ctx, question_id, str(dest))
+    with PIPELINE_LOCK:  # capture_answer runs STT — serialize against stage runs/warmup
+        stage.capture_answer(s.ctx, question_id, str(dest))
     return _snapshot(sid)
 
 
