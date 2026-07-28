@@ -8,11 +8,15 @@ until the box is actually ready.
 
 Policy-aware by construction: it drives ``ModelManager.get()``/``release()``,
 which already enforce the env's ``max_resident_gpu_models`` budget (1 on the
-8 GB laptop). CPU-resident models (Kokoro ``tts``/``tts_en``, Vaani ``stt``) are
-kept loaded because they cost nothing against the single GPU slot and are the
-real cold-start pain; GPU models are *touched then released* — enough to warm the
-OS page cache and prove the weights load, without pinning the one GPU slot that
-the pipeline needs free for its first stage.
+8 GB laptop). CPU-resident models and models marked ``pinned`` in models.yaml
+(Kokoro ``tts``, Piper ``tts_en``) are kept loaded because they are small and are
+the real cold-start pain; other GPU models are *touched then released* — enough
+to warm the OS page cache and prove the weights load, without pinning the one GPU
+slot that the pipeline needs free for its first stage.
+
+Each model also gets one throwaway inference via its optional ``warm()`` hook, so
+lazy runtime init (CUDA kernels, G2P tables) lands here instead of on the first
+patient.
 
 Best-effort: a model that fails to load (Ollama down, weights missing) is logged
 and marked unavailable in readiness — the server never crashes because of it. The
@@ -53,12 +57,18 @@ def run_warmup(pipeline, lock: threading.Lock, readiness: dict, models: list[str
         with lock:
             try:
                 adapter = pipeline.models.get(name)
-                if getattr(adapter, "is_gpu", False):
+                # A first real inference, not just a weight load: the lazy
+                # runtime init behind it (CUDA kernels, the misaki Hindi G2P
+                # tables) is otherwise paid by the first patient, not by boot.
+                warm = getattr(adapter, "warm", None)
+                if callable(warm):
+                    warm()
+                if getattr(adapter, "is_gpu", False) and not getattr(adapter, "pinned", False):
                     # Don't pin the single GPU slot; weights are now warm on disk.
                     pipeline.models.release(name)
                     readiness["loaded"].append(f"{name} (touched)")
                 else:
-                    readiness["loaded"].append(name)  # CPU: keep resident
+                    readiness["loaded"].append(name)  # CPU or pinned: keep resident
                 log.info("warmed %s", name)
             except Exception as e:  # noqa: BLE001 — warmup is best-effort by design
                 readiness["unavailable"].append(name)

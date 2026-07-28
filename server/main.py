@@ -419,11 +419,14 @@ def _stage_metrics(name: str, c: SessionContext) -> list[dict]:
         # hardcoded "~0.03 (≈30× realtime)" was a Piper-era figure that survived
         # the Kokoro swap; bench/runner_tts.py measures Kokoro at mean RTF 0.29,
         # so the chip was overstating synthesis speed ~10x to stakeholders.
+        #
+        # Device is read from the spec for the same reason: it was hardcoded
+        # "CPU · GPU-free", which went stale the moment Hindi moved to cuda.
         spoken_ms = sum(cl.duration_ms or 0 for cl in c.audio_out)
         return [
             {"label": "Engine", "value": engine},
             {"label": "Voice", "value": voice},
-            {"label": "Device", "value": "CPU · GPU-free"},
+            {"label": "Device", "value": _dev_label(spec)},
             {"label": "Audio synthesised", "value": f"{spoken_ms / 1000:.1f} s"},
             {"label": "Clips synthesised", "value": str(len(c.audio_out))},
         ]

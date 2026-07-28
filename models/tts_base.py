@@ -11,10 +11,13 @@ Same ModelManager lifecycle as every model (load/unload frees VRAM).
 from __future__ import annotations
 
 import io
+import logging
 import wave
 from dataclasses import dataclass
 
 from core.env import EnvProfile
+
+log = logging.getLogger("swasthya.tts")
 
 
 class TTSUnavailable(ImportError):
@@ -55,6 +58,25 @@ class TTSAdapterBase:
     def synthesize(self, text: str, lang: str = "hi") -> Audio:
         self.load()
         return self._synthesize(text, lang)
+
+    #: Short utterance used by ``warm()``. Override per engine/language — the
+    #: G2P front end is language-specific, so warming Hindi with English text
+    #: would not touch the tables the first real question needs.
+    warm_text: str = "ok"
+
+    def warm(self) -> None:
+        """One throwaway synthesis, called by the boot warmup.
+
+        Loading the weights is not the whole cold start: the first synthesis also
+        pays lazy CUDA kernel selection and G2P table init. Best-effort — the
+        model is loaded and usable either way, so a failure here is logged, not
+        raised, and must never mark a working engine unavailable.
+        """
+        try:
+            self.synthesize(self.warm_text)
+        except Exception as exc:  # noqa: BLE001 - warmup is best-effort by design
+            log.warning("TTS warm() failed for %s: %s: %s",
+                        self.logical_name, type(exc).__name__, exc)
 
     # -- helpers ----------------------------------------------------------
     @staticmethod

@@ -14,8 +14,14 @@ Provision via config:
       impl: kokoro
       lang_code: h          # Kokoro language code — 'h' = Hindi
       voice: hf_alpha       # hf_alpha/hf_beta (F), hm_omega/hm_psi (M)
-      device: cpu           # GPU-free keeps Orin's budget for the LLM + STT
+      device: cuda          # measured RTF 0.024 vs 0.351 on 16 CPU threads
       sample_rate: 24000    # Kokoro native
+      pinned: true          # 330 MB; never evicted by the GPU-count policy
+      keep_warm: true       # the voice stage skips its release
+
+``device: cpu`` still works unchanged and stays the right choice on a box with no
+CUDA or with the card fully committed — it costs ~0.35 s of synthesis per second
+of speech instead of ~0.024 s.
 
 Heavy deps (`kokoro`, `misaki`) import lazily on load; if absent this raises
 ``TTSUnavailable`` and the voice stage falls back to the silent stub. Setup:
@@ -34,7 +40,9 @@ _REPO = "hexgrad/Kokoro-82M"
 
 
 class KokoroTTSAdapter(TTSAdapterBase):
-    default_vram_mb = 0  # CPU by default — no GPU footprint
+    default_vram_mb = 400  # 82 M params; ~330 MB resident on the 4060
+
+    warm_text = "नमस्ते"   # Hindi, so warm() touches the misaki Devanagari G2P
 
     def _build(self):
         try:

@@ -64,7 +64,26 @@ class EnvProfile(BaseModel):
         with path.open("r", encoding="utf-8") as fh:
             raw = yaml.safe_load(fh) or {}
         raw.setdefault("name", resolved)
-        return cls(**raw)
+        profile = cls(**raw)
+        profile._apply_offline_policy()
+        return profile
+
+    def _apply_offline_policy(self) -> None:
+        """Make the ML libraries honour ``internet_allowed: false``.
+
+        Without this, every ``KPipeline``/``from_pretrained`` build does hub HEAD
+        requests even though the weights are already on disk: cheap on a good
+        network, an unbounded socket timeout on the offline kiosk this profile
+        describes. ``setdefault`` so an explicit env var still wins.
+
+        Must run before huggingface_hub is imported — its constants are read at
+        import time — which is why it lives at profile load, ahead of the lazy
+        adapter imports, rather than inside an adapter's ``_build``.
+        """
+        if self.internet_allowed:
+            return
+        for var in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE"):
+            os.environ.setdefault(var, "1")
 
     @property
     def is_gpu(self) -> bool:

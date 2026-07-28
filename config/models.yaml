@@ -102,14 +102,31 @@ tts:
   # non-commercial (CC-BY-NC-SA / IIT-M — the same MMS blocker); Piper's MIT engine
   # is fine, its Hindi weights are not. See commercial.md §0 / record.md §9.
   # Voices: hf_alpha/hf_beta (F), hm_omega/hm_psi (M).
-  primary: {impl: kokoro, device: cpu, vram_mb: 0, lang_code: h,
-            voice: hf_alpha, sample_rate: 24000}
+  #
+  # LATENCY (measured on dev_4060, 5 intake questions = 34.9 s of Hindi audio):
+  # the stage cost was ~131 s, of which ~85-90% was model materialization, not
+  # speech. Three knobs below fix that, and none of them touch audio quality —
+  # same weights, same voice, same sample rate:
+  #   device: cuda   RTF 0.024 vs 0.351 on 16 CPU threads (25.1 s of audio in
+  #                  0.61 s vs 8.8 s). Kokoro is 82 M params / ~330 MB, so it
+  #                  costs almost nothing against the 8 GB card.
+  #   pinned: true   exempt from max_resident_gpu_models eviction and kept
+  #                  resident by the boot warmup. Without it, being a GPU model
+  #                  now would make warmup touch-and-release it (warmup.py) and
+  #                  every session would re-pay the ~10 s import + build.
+  #   keep_warm      the voice stage skips its release, so repeat sessions pay
+  #                  no KPipeline re-init (same knob as ocr.primary).
+  primary: {impl: kokoro, device: cuda, vram_mb: 400, lang_code: h,
+            voice: hf_alpha, sample_rate: 24000, pinned: true, keep_warm: true}
   stub: {impl: stub_tts, device: cpu, sample_rate: 22050}
 
 tts_en:
   # Phase 7 voice — ENGLISH. Piper (VITS/ONNX, ~15M, CPU, ARM-native, realtime,
   # zero GPU), permissively licensed. English routes here.
-  primary: {impl: piper, device: cpu, vram_mb: 0, voice: "models/weights/piper/en_US-lessac-medium.onnx"}
+  # keep_warm for the same reason as the Hindi engine above: CPU-resident, no
+  # VRAM cost, and re-initialising the ONNX voice on every session is pure waste.
+  primary: {impl: piper, device: cpu, vram_mb: 0, keep_warm: true,
+            voice: "models/weights/piper/en_US-lessac-medium.onnx"}
   stub: {impl: stub_tts, device: cpu, sample_rate: 22050}
 
 avatar:

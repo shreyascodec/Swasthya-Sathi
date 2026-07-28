@@ -110,6 +110,11 @@ class ModelManager:
             )
 
         adapter = make(logical_name=logical_name, spec=spec, env=self.env)
+        # `pinned` marks a model that is small enough to stay resident and
+        # expensive enough to load that evicting it costs more than the slot is
+        # worth (Kokoro TTS: ~330 MB, ~10 s to re-materialise). Set here rather
+        # than read from the adapter so it works for any adapter shape.
+        adapter.pinned = bool(spec.get("pinned", False))
 
         if getattr(adapter, "is_gpu", False):
             self._enforce_gpu_policy()
@@ -147,7 +152,12 @@ class ModelManager:
 
     def _enforce_gpu_policy(self) -> None:
         limit = self.env.max_resident_gpu_models
-        resident = self._resident_gpu()
+        # Pinned models are never chosen as victims: the policy counts *heavy*
+        # models, and evicting a 330 MB always-needed one to make room is a net
+        # loss. They still count against the VRAM ceiling in _check_budget, so
+        # the card cannot be oversubscribed by pinning.
+        resident = [n for n in self._resident_gpu()
+                    if not getattr(self._loaded[n], "pinned", False)]
         # We're about to add one more, so free until there's room for it.
         while len(resident) >= limit and resident:
             victim = resident.pop(0)

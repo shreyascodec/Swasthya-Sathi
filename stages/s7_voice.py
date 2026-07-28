@@ -68,8 +68,16 @@ class VoiceStage(Stage):
             self._active_impl = f"{primary}->stub_tts(fallback)"
 
     def unload(self) -> None:
-        self.models.release(getattr(self, "_logical", "tts"))
+        # keep_warm (tts/tts_en primary in models.yaml) skips the release, same
+        # knob as ocr.primary. Without it Stage.__call__'s guaranteed unload made
+        # every session rebuild the engine — ~10 s of import + KPipeline build
+        # per run — and, worse, evicted the very model server/warmup.py had kept
+        # resident at boot, so the warmup only ever helped the first session.
+        logical = getattr(self, "_logical", "tts")
         self._tts = None
+        if self.config.models.get(logical, {}).get("primary", {}).get("keep_warm", False):
+            return
+        self.models.release(logical)
 
     def _avatar_enabled(self) -> bool:
         return bool(self.config.models.get("avatar", {}).get("primary", {}).get("enabled", False))
