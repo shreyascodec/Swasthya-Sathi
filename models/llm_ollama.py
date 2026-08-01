@@ -11,6 +11,7 @@ Setup (per phase, on the 4060):
 from __future__ import annotations
 
 import json
+import os
 import urllib.error
 import urllib.request
 
@@ -22,12 +23,12 @@ class OllamaAdapter(LLMAdapterBase):
     default_vram_mb = 2600
 
     def _endpoint(self) -> str:
-        host = self.spec.get("host", "http://localhost:11434")
+        host = os.environ.get("SS_OLLAMA_HOST") or self.spec.get("host", "http://localhost:11434")
         return host.rstrip("/") + "/api/chat"
 
     def _build(self):
         # Verify the server is reachable so we can fall back cleanly if not.
-        host = self.spec.get("host", "http://localhost:11434").rstrip("/")
+        host = (os.environ.get("SS_OLLAMA_HOST") or self.spec.get("host", "http://localhost:11434")).rstrip("/")
         try:
             with urllib.request.urlopen(host + "/api/tags", timeout=3) as resp:
                 resp.read()
