@@ -25,3 +25,13 @@ frontend/dist/
 .pytest_cache/
 .DS_Store
 
+
+# local Docker build cache / mounted HF + PaddleX weights (never commit)
+.docker/
+
+# analysis / editor tooling
+graphify-out/
+.claude/
+
+# packaged image export (multi-GB)
+swasthya-app.tar

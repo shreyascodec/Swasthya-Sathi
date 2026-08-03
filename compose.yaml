@@ -1,0 +1,19 @@
+# App only — install Ollama + pull qwen2.5:3b-instruct on the host yourself.
+# The container reaches host Ollama via host.docker.internal.
+services:
+  app:
+    build: .
+    image: swasthya-app:latest
+    ports: ["8000:8000"]
+    environment:
+      SS_OLLAMA_HOST: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes: [sessions:/app/_session_data]
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: all, capabilities: [gpu]}]
+
+volumes:
+  sessions: {}
