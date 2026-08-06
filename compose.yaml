@@ -1,4 +1,4 @@
-# App only — install Ollama + pull qwen2.5:3b-instruct on the host yourself.
+# App only — install Ollama + pull phi3.5:3.8b on the host yourself.
 # The container reaches host Ollama via host.docker.internal.
 services:
   app:

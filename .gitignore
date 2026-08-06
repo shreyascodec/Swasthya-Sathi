@@ -33,5 +33,27 @@ frontend/dist/
 graphify-out/
 .claude/
 
-# packaged image export (multi-GB)
-swasthya-app.tar
+# appliance first-run state + setup logs (machine-local)
+runtime/
+logs/
+deploy/_pyinstaller_dist/
+deploy/_pyinstaller_work/
+deploy/*.spec
+deploy/_setup_entry.py
+# Keep Setup.exe in the release zip; rebuild with deploy\build_setup_exe.ps1
+# (not committed — binary artifact)
+Setup.exe
+
+# Inno Setup: bundled offline installers + compiled output (binary artifacts,
+# fetched/built by deploy\build_release.ps1 — never commit)
+deploy/bundle/
+dist/
+
+# Real patient data / eval fixtures derived from it — NEVER commit (PII).
+data/eval/real_pdf_pages/
+bench/real_reports_*
+bench/results/real_reports_*
+
+# Local working notes (session summaries, strategy) — keep out of the repo.
+summary.md
+

@@ -1,7 +1,10 @@
-"""PaddleOCR adapter (primary OCR engine). Lazy-imports paddleocr on load.
+"""PaddleOCR adapter (optional OCR bench candidate). Lazy-imports paddleocr on load.
 
-Install (per phase, not in the lean Phase-0/1 set):
+Install only when benching against RapidOCR primary:
     pip install paddlepaddle paddleocr          # or paddlepaddle-gpu on CUDA
+
+Primary production OCR is RapidOCR (`ocr.primary.impl: rapidocr` in
+config/models.yaml). This adapter stays for A/B and fallback experiments.
 
 Targets PaddleOCR 3.x (the ``.predict()`` API with ``rec_texts``/``rec_scores``/
 ``rec_polys``). The old 2.x ``use_gpu``/``show_log``/``.ocr(cls=True)`` surface is

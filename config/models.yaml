@@ -9,21 +9,19 @@
 # VRAM load/unload proof and the harness until real adapters land per phase.
 
 ocr:
-  # Swap `primary.impl` to bench engines: paddleocr | surya | stub_ocr.
-  # stub_ocr needs no heavy deps (CPU / no-GPU / offline demo fallback).
+  # Swap `primary.impl` to bench engines: rapidocr | paddleocr | surya | stub_ocr.
+  # PRIMARY: RapidOCR (Apache-2.0 ONNX PP-OCR family) — no paddlepaddle runtime.
   # English-only: ~99% of reports are pure English; stray Hindi notes are not
   # worth the Devanagari misreads on English text.
-  # Speed knobs (ocrplan.md Phase 1): mobile PP-OCRv5 det/rec (2-4x faster than
-  # the server default on printed English), textline-orientation off (intake
-  # already deskews), detection input capped at 1280 px. enable_mkldnn stays
-  # false on this machine (paddle 3.x oneDNN/PIR Windows crash) — flip it on
-  # hosts where it works for ~2-3x CPU speedup. keep_warm: true skips the
-  # unload after each run (engine re-init saved; GPU policy still evicts it
-  # before the LLM loads).
-  primary: {impl: paddleocr, lang: [en], device: cuda, precision: fp16, vram_mb: 1024,
-            det_model: PP-OCRv5_mobile_det, rec_model: PP-OCRv5_mobile_rec,
-            det_limit_side_len: 1280, use_textline_orientation: false,
-            enable_mkldnn: false, keep_warm: false}
+  # Speed knobs: mobile PP-OCRv5 det/rec, textline-orientation off (intake
+  # already deskews), detection input capped at 1280 px.
+  primary: {impl: rapidocr, lang: [en], device: cuda, precision: fp16, vram_mb: 800,
+            det_limit_side_len: 1280, use_textline_orientation: false, keep_warm: false}
+  # paddleocr kept as optional bench candidate (Apache-2.0 code; heavy runtime).
+  paddle: {impl: paddleocr, lang: [en], device: cuda, precision: fp16, vram_mb: 1024,
+           det_model: PP-OCRv5_mobile_det, rec_model: PP-OCRv5_mobile_rec,
+           det_limit_side_len: 1280, use_textline_orientation: false,
+           enable_mkldnn: false, keep_warm: false}
   fallback: {impl: surya, device: cuda, lang: [en], vram_mb: 1536}
   stub: {impl: stub_ocr, device: cpu}
 
@@ -51,13 +49,15 @@ image_tag:
   stub: {impl: stub_imagetag, device: cpu, classes: [skin, eye, wound, oral]}
 
 llm:
-  # VARIANT (poc testing2): primary = Qwen2.5-3B-Instruct (text-only, via
-  # Ollama) — this pipeline generates the summary from OCR text alone
-  # (summary.use_images is off in stages.yaml). ~9 s single-report latency.
+  # PRIMARY: Phi-3.5-mini (MIT) via Ollama — commercial-clean replacement for
+  # qwen2.5:3b-instruct (Qwen License, not Apache). Text-only summary from OCR
+  # (summary.use_images is off in stages.yaml). Faithfulness gate is mandatory.
   # On CPU / no-deps the stage falls back to stub_llm automatically.
-  primary: {impl: ollama_llm, model: "qwen2.5:3b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 2600, instruct: true}
+  primary: {impl: ollama_llm, model: "phi3.5:3.8b", runtime: ollama, quant: int4, device: cuda, vram_mb: 3200, instruct: true}
   candidates:
+    - {name: phi3.5-3.8b, impl: ollama_llm, model: "phi3.5:3.8b", runtime: ollama, quant: int4, device: cuda, vram_mb: 3200, instruct: true}
     - {name: qwen2.5-3b-instruct, impl: ollama_llm, model: "qwen2.5:3b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 2600, instruct: true}
+    - {name: qwen2.5-1.5b-instruct, impl: ollama_llm, model: "qwen2.5:1.5b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 1800, instruct: true}
     - {name: sarvam-1-2b, impl: transformers_llm, model: "sarvamai/sarvam-1", runtime: transformers, quant: int4, device: cuda, vram_mb: 1800, instruct: false}
     - {name: medgemma-4b, impl: transformers_llm, model: "google/medgemma-4b-it", runtime: transformers, quant: int4, device: cuda, vram_mb: 3200, instruct: true, gated: true}
     - {name: airavata-7b, impl: transformers_llm, model: "ai4bharat/Airavata", runtime: transformers, quant: int4, device: cuda, vram_mb: 4500, instruct: true}

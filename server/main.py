@@ -362,10 +362,12 @@ def _stage_metrics(name: str, c: SessionContext) -> list[dict]:
         ]
     if name == "ocr":
         spec = M["ocr"]["primary"]
-        engine = (c.ocr.engine if c.ocr else None) or "PaddleOCR"
+        engine = (c.ocr.engine if c.ocr else None) or spec.get("impl") or "rapidocr"
+        model_bits = [spec.get("det_model"), spec.get("rec_model")]
+        model_label = " + ".join(b for b in model_bits if b) or str(spec.get("impl") or engine)
         return [
             {"label": "Engine", "value": engine},
-            {"label": "Model", "value": f"{spec.get('det_model')} + {spec.get('rec_model')}"},
+            {"label": "Model", "value": model_label},
             {"label": "Device", "value": _dev_label(spec)},
             {"label": "Fields extracted", "value": str(len(c.ocr.fields) if c.ocr else 0)},
         ]

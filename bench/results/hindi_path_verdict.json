@@ -1,0 +1,607 @@
+{
+  "ts": "2026-08-05T09:28:40.187927+00:00",
+  "path": "hindi",
+  "ocr": {
+    "engine": "rapidocr",
+    "n": 5,
+    "mean_latency_s": 7.9474,
+    "mean_f1": 1.0,
+    "mean_precision": 1.0,
+    "mean_recall": 1.0,
+    "per_item": [
+      {
+        "id": "rpt_00_hi",
+        "latency_s": 1.5981,
+        "n_tokens": 13,
+        "n_fields": 10,
+        "mean_conf": 0.9919,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 3,
+        "fp": 0,
+        "fn": 0
+      },
+      {
+        "id": "rpt_01_hi",
+        "latency_s": 10.1566,
+        "n_tokens": 12,
+        "n_fields": 8,
+        "mean_conf": 0.9903,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      {
+        "id": "rpt_02_hi",
+        "latency_s": 9.8906,
+        "n_tokens": 12,
+        "n_fields": 8,
+        "mean_conf": 0.992,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      {
+        "id": "rpt_03_hi",
+        "latency_s": 9.0265,
+        "n_tokens": 12,
+        "n_fields": 8,
+        "mean_conf": 0.992,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      },
+      {
+        "id": "rpt_04_hi",
+        "latency_s": 9.0652,
+        "n_tokens": 12,
+        "n_fields": 8,
+        "mean_conf": 0.9918,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "tp": 2,
+        "fp": 0,
+        "fn": 0
+      }
+    ]
+  },
+  "hindi_intake": {
+    "n": 5,
+    "pct_all_in_bank": 1.0,
+    "pct_all_devanagari": 1.0,
+    "mean_questions": 5.0,
+    "per_item": [
+      {
+        "id": "rpt_00_hi",
+        "n_questions": 5,
+        "all_in_bank": true,
+        "all_devanagari": true,
+        "questions": [
+          {
+            "pattern_id": "cond_anemia",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका हीमोग्लोबिन 9.5 g/dL है, जो कम है। क्या आप अक्सर थकान, कमजोरी या सांस फूलने का अनुभव करते हैं?",
+            "text_en": "Your hemoglobin is 9.5 g/dL, which is low. Do you often feel tired, weak, or short of breath?"
+          },
+          {
+            "pattern_id": "std_chief_complaint",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+            "text_en": "What is the main health problem you have come for today?"
+          },
+          {
+            "pattern_id": "std_current_meds",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+            "text_en": "Are you currently taking any medicines? If yes, which ones?"
+          },
+          {
+            "pattern_id": "std_symptom_duration",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपके वर्तमान लक्षण कब से हैं?",
+            "text_en": "How long have you had your current symptoms?"
+          },
+          {
+            "pattern_id": "std_allergies",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आपको दवा या भोजन से कोई ज्ञात एलर्जी है?",
+            "text_en": "Do you have any known allergies to medicines or food?"
+          }
+        ]
+      },
+      {
+        "id": "rpt_01_hi",
+        "n_questions": 5,
+        "all_in_bank": true,
+        "all_devanagari": true,
+        "questions": [
+          {
+            "pattern_id": "cond_high_glucose",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका Glucose Fasting 142 mg/dL है, जो अधिक है। क्या आपका मधुमेह का इलाज चल रहा है और क्या आप इसके लिए कोई दवा ले रहे हैं?",
+            "text_en": "Your Glucose Fasting is 142 mg/dL, which is high. Are you being treated for diabetes, and are you on any medication for it?"
+          },
+          {
+            "pattern_id": "med_adherence",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपकी रिपोर्ट में Tab Metformin 500mg का उल्लेख है। क्या आप इसे नियमित रूप से बताए अनुसार ले रहे हैं?",
+            "text_en": "Your report mentions Tab Metformin 500mg. Are you taking it regularly as prescribed?"
+          },
+          {
+            "pattern_id": "missing_lipid_for_diabetes",
+            "category": "missing_report",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपकी शुगर अधिक है लेकिन कोलेस्ट्रॉल का परिणाम नहीं है। क्या हाल ही में आपकी लिपिड प्रोफ़ाइल जांची गई है?",
+            "text_en": "Your sugar is high but there is no cholesterol result. Has your lipid profile been checked recently?"
+          },
+          {
+            "pattern_id": "std_chief_complaint",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+            "text_en": "What is the main health problem you have come for today?"
+          },
+          {
+            "pattern_id": "std_current_meds",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+            "text_en": "Are you currently taking any medicines? If yes, which ones?"
+          }
+        ]
+      },
+      {
+        "id": "rpt_02_hi",
+        "n_questions": 5,
+        "all_in_bank": true,
+        "all_devanagari": true,
+        "questions": [
+          {
+            "pattern_id": "cond_renal",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका Creatinine 1.6 mg/dL है, जो अधिक है। क्या आपको गुर्दे की कोई समस्या है, या क्या आप नियमित रूप से दर्द निवारक दवा लेते हैं?",
+            "text_en": "Your Creatinine is 1.6 mg/dL, which is high. Do you have any known kidney problem, or do you take painkillers regularly?"
+          },
+          {
+            "pattern_id": "std_chief_complaint",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+            "text_en": "What is the main health problem you have come for today?"
+          },
+          {
+            "pattern_id": "std_current_meds",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+            "text_en": "Are you currently taking any medicines? If yes, which ones?"
+          },
+          {
+            "pattern_id": "std_symptom_duration",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपके वर्तमान लक्षण कब से हैं?",
+            "text_en": "How long have you had your current symptoms?"
+          },
+          {
+            "pattern_id": "std_allergies",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आपको दवा या भोजन से कोई ज्ञात एलर्जी है?",
+            "text_en": "Do you have any known allergies to medicines or food?"
+          }
+        ]
+      },
+      {
+        "id": "rpt_03_hi",
+        "n_questions": 5,
+        "all_in_bank": true,
+        "all_devanagari": true,
+        "questions": [
+          {
+            "pattern_id": "cond_thyroid",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका TSH 6.9 mIU/L है। क्या आप थायरॉइड की कोई दवा ले रहे हैं?",
+            "text_en": "Your TSH is 6.9 mIU/L. Are you taking any thyroid medicine?"
+          },
+          {
+            "pattern_id": "med_adherence",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपकी रिपोर्ट में Tab Thyronorm 50mcg का उल्लेख है। क्या आप इसे नियमित रूप से बताए अनुसार ले रहे हैं?",
+            "text_en": "Your report mentions Tab Thyronorm 50mcg. Are you taking it regularly as prescribed?"
+          },
+          {
+            "pattern_id": "cond_vit_d_low",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका विटामिन डी 18 ng/mL है, जो कम है। क्या आपको नियमित धूप मिलती है, या आप विटामिन डी सप्लीमेंट लेते हैं?",
+            "text_en": "Your vitamin D is 18 ng/mL, which is low. Do you get regular sun exposure, or take any vitamin D supplement?"
+          },
+          {
+            "pattern_id": "std_chief_complaint",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+            "text_en": "What is the main health problem you have come for today?"
+          },
+          {
+            "pattern_id": "std_current_meds",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+            "text_en": "Are you currently taking any medicines? If yes, which ones?"
+          }
+        ]
+      },
+      {
+        "id": "rpt_04_hi",
+        "n_questions": 5,
+        "all_in_bank": true,
+        "all_devanagari": true,
+        "questions": [
+          {
+            "pattern_id": "cond_lipid",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपका Total Cholesterol 232 mg/dL है, जो अधिक है। क्या आपको सीने में दर्द होता है, या परिवार में हृदय रोग का इतिहास है?",
+            "text_en": "Your Total Cholesterol is 232 mg/dL, which is high. Do you have chest pain, or a family history of heart disease?"
+          },
+          {
+            "pattern_id": "med_adherence",
+            "category": "condition_follow_up",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपकी रिपोर्ट में Tab Atorvastatin 10mg का उल्लेख है। क्या आप इसे नियमित रूप से बताए अनुसार ले रहे हैं?",
+            "text_en": "Your report mentions Tab Atorvastatin 10mg. Are you taking it regularly as prescribed?"
+          },
+          {
+            "pattern_id": "std_chief_complaint",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+            "text_en": "What is the main health problem you have come for today?"
+          },
+          {
+            "pattern_id": "std_current_meds",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+            "text_en": "Are you currently taking any medicines? If yes, which ones?"
+          },
+          {
+            "pattern_id": "std_symptom_duration",
+            "category": "standard_history",
+            "in_bank": true,
+            "has_devanagari": true,
+            "slots_filled": true,
+            "text_hi": "आपके वर्तमान लक्षण कब से हैं?",
+            "text_en": "How long have you had your current symptoms?"
+          }
+        ]
+      }
+    ]
+  },
+  "llms": [
+    {
+      "model": "phi3.5:3.8b",
+      "n": 5,
+      "mean_latency_s": 6.5827,
+      "mean_faithfulness": 0.9214,
+      "mean_hallucination_rate": 0.0786,
+      "mean_f1": 0.76,
+      "mean_precision": 0.8,
+      "mean_recall": 0.7333,
+      "parse_errors": 0,
+      "per_item": [
+        {
+          "id": "rpt_00_hi",
+          "latency_s": 7.6868,
+          "faithfulness": 0.8571,
+          "hallucination_rate": 0.1429,
+          "issues": 1,
+          "precision": 1.0,
+          "recall": 0.6667,
+          "f1": 0.8,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_01_hi",
+          "latency_s": 6.7641,
+          "faithfulness": 0.8333,
+          "hallucination_rate": 0.1667,
+          "issues": 2,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_02_hi",
+          "latency_s": 5.7054,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_03_hi",
+          "latency_s": 6.3261,
+          "faithfulness": 0.9167,
+          "hallucination_rate": 0.0833,
+          "issues": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_04_hi",
+          "latency_s": 6.4312,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "parse_error": false
+        }
+      ]
+    },
+    {
+      "model": "qwen2.5:3b-instruct",
+      "n": 5,
+      "mean_latency_s": 6.106,
+      "mean_faithfulness": 0.9833,
+      "mean_hallucination_rate": 0.0167,
+      "mean_f1": 1.0,
+      "mean_precision": 1.0,
+      "mean_recall": 1.0,
+      "parse_errors": 0,
+      "per_item": [
+        {
+          "id": "rpt_00_hi",
+          "latency_s": 8.4924,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_01_hi",
+          "latency_s": 5.4991,
+          "faithfulness": 0.9167,
+          "hallucination_rate": 0.0833,
+          "issues": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_02_hi",
+          "latency_s": 5.4073,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_03_hi",
+          "latency_s": 5.9144,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        },
+        {
+          "id": "rpt_04_hi",
+          "latency_s": 5.2167,
+          "faithfulness": 1.0,
+          "hallucination_rate": 0.0,
+          "issues": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "parse_error": false
+        }
+      ]
+    }
+  ],
+  "browser": {
+    "session_id": "4a56b377b4b1",
+    "lang": "hi",
+    "ready": {
+      "ready": true,
+      "warming": false,
+      "loaded": [
+        "tts",
+        "tts_en",
+        "stt",
+        "ocr (touched)",
+        "image_tag",
+        "llm (touched)"
+      ],
+      "unavailable": [],
+      "seconds": 5.3,
+      "sessions": 3
+    },
+    "total_s": 40.1963,
+    "ocr_engine": "rapidocr",
+    "n_ocr_fields": 10,
+    "faithfulness": 0.875,
+    "faithfulness_ok": false,
+    "faith_issues": [
+      "narrative contains ungrounded number '5'"
+    ],
+    "n_questions": 5,
+    "questions_all_devanagari": true,
+    "questions": [
+      {
+        "id": "4a56b377b4b1:cond_anemia",
+        "pattern_id": "cond_anemia",
+        "lang": "hi",
+        "text": "आपका हीमोग्लोबिन 9.5 g/dL है, जो कम है। क्या आप अक्सर थकान, कमजोरी या सांस फूलने का अनुभव करते हैं?",
+        "has_devanagari": true
+      },
+      {
+        "id": "4a56b377b4b1:std_chief_complaint",
+        "pattern_id": "std_chief_complaint",
+        "lang": "hi",
+        "text": "आज आप किस मुख्य स्वास्थ्य समस्या के लिए आए हैं?",
+        "has_devanagari": true
+      },
+      {
+        "id": "4a56b377b4b1:std_current_meds",
+        "pattern_id": "std_current_meds",
+        "lang": "hi",
+        "text": "क्या आप इस समय कोई दवा ले रहे हैं? यदि हाँ, तो कौन सी?",
+        "has_devanagari": true
+      },
+      {
+        "id": "4a56b377b4b1:std_symptom_duration",
+        "pattern_id": "std_symptom_duration",
+        "lang": "hi",
+        "text": "आपके वर्तमान लक्षण कब से हैं?",
+        "has_devanagari": true
+      },
+      {
+        "id": "4a56b377b4b1:std_allergies",
+        "pattern_id": "std_allergies",
+        "lang": "hi",
+        "text": "क्या आपको दवा या भोजन से कोई ज्ञात एलर्जी है?",
+        "has_devanagari": true
+      }
+    ],
+    "n_audio_clips": 5,
+    "stages": [
+      {
+        "stage": "intake",
+        "status": "flagged",
+        "elapsed_ui": 10.3,
+        "latency_s": 10.3408
+      },
+      {
+        "stage": "ocr",
+        "status": "done",
+        "elapsed_ui": 15.7,
+        "latency_s": 15.7371
+      },
+      {
+        "stage": "image_tag",
+        "status": "done",
+        "elapsed_ui": 0.0,
+        "latency_s": 0.0054
+      },
+      {
+        "stage": "summary",
+        "status": "done",
+        "elapsed_ui": 11.9,
+        "latency_s": 11.873
+      },
+      {
+        "stage": "interpret",
+        "status": "done",
+        "elapsed_ui": 0.0,
+        "latency_s": 0.0069
+      },
+      {
+        "stage": "intake_qa",
+        "status": "done",
+        "elapsed_ui": 0.0,
+        "latency_s": 0.0429
+      },
+      {
+        "stage": "voice",
+        "status": "done",
+        "elapsed_ui": 0.1,
+        "latency_s": 0.0882
+      }
+    ],
+    "paused": {
+      "kind": "intake_qa",
+      "stage": "voice",
+      "detail": "Answer the intake questions with the patient, then continue — hashing and the report run last so the answers are included in what gets sealed."
+    }
+  },
+  "verdict": "OCR on Hindi-path sessions: **GO** (English report digitisation holds). Hindi closed-bank intake: **GO** (100% Devanagari + in-bank). Phi on lang=hi: **CONDITIONAL GO** — usable with faithfulness gate; below Qwen on raw faith, but MIT-distributable. Qwen baseline lang=hi: faith=0.9833, F1=1.0, lat=6.106s. Browser Hindi path: **PASS** — 5 Devanagari questions, OCR=rapidocr, faith=0.875, total=40.1963s. **DECIDING FACTOR: APPROVE RapidOCR + Phi for Hindi-path commercial trial** with mandatory faithfulness gate and prompt polish before production."
+}

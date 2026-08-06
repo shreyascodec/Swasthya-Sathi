@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-VALID_ENVS = ("dev_4060", "cloud", "orin")
+VALID_ENVS = ("local", "dev_4060", "cloud", "orin")
 DEFAULT_ENV = "dev_4060"
 ENV_VAR = "SS_ENV"
 
@@ -49,6 +49,11 @@ class EnvProfile(BaseModel):
         Resolution order: explicit arg -> SS_ENV -> DEFAULT_ENV.
         """
         resolved = name or os.environ.get(ENV_VAR) or DEFAULT_ENV
+        # Appliance setup writes config/env/local.yaml from hardware detection.
+        # If SS_ENV=local but the file is not there yet, fall back to DEFAULT_ENV
+        # so a fresh checkout still boots.
+        if resolved == "local" and not (CONFIG_ENV_DIR / "local.yaml").exists():
+            resolved = DEFAULT_ENV
         if resolved not in VALID_ENVS:
             raise ValueError(
                 f"Unknown SS_ENV '{resolved}'. Expected one of {VALID_ENVS}."

@@ -256,7 +256,7 @@ Documented as future work in `stages/s9_report.py`:
 
 | Capability | Implementation notes |
 |------------|----------------------|
-| LLM summary | Primary: Ollama `qwen2.5:3b-instruct` (text-only; images not fed to summary in current variant) |
+| LLM summary | Primary: Ollama `phi3.5:3.8b` (text-only; images not fed to summary in current variant) |
 | Faithfulness gate | Scores/rejects unsupported LLM claims vs OCR |
 | Image typing | MobileNetV3-Small (primary); MedGemma candidate fallback |
 | STT | faster-whisper Vaani Hindi CT2 INT8 primary; multilingual large-v3; small router for language mismatch |
@@ -338,10 +338,10 @@ API version string in app metadata: `1.0.0`.
 
 | Integration | Role |
 |-------------|------|
-| **Ollama** (local) | Summary LLM host (`qwen2.5:3b-instruct`); Docker reaches host via `host.docker.internal` |
+| **Ollama** (local) | Summary LLM host (`phi3.5:3.8b`); Docker reaches host via `host.docker.internal` |
 | **Local weights** | `models/weights/` — STT, TTS, image-tag, OCR models |
 | **Hugging Face cache** | e.g. Kokoro; MedGemma gated (dev setup may need HF login — not end-user auth) |
-| **PaddleOCR / PaddleX** | On-device OCR |
+| **RapidOCR** (ONNX) | On-device OCR (Apache-2.0); PaddleOCR optional bench candidate |
 | **Chrome / browser** | Kiosk UI |
 
 ### 11.3 Not integrated (as of this codebase)
@@ -368,7 +368,7 @@ Sessions are **in-memory** (TTL + LRU). README layout mentions `db/` SQLite, but
 
 - Python: FastAPI + uvicorn  
 - Pipeline: custom Stage / ModelManager architecture  
-- OCR: PaddleOCR + paddlepaddle  
+- OCR: RapidOCR + onnxruntime (PaddleOCR optional)  
 - CV: OpenCV, PyMuPDF  
 - LLM client: Ollama (primary); transformers candidates  
 - STT: faster-whisper  

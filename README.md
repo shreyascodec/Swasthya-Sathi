@@ -56,8 +56,9 @@ npm install                          # first time only
 npm run dev                          # http://localhost:5173
 ```
 
-The summary stage uses a local Ollama model (`qwen2.5:3b-instruct`) — have the
-Ollama app running. STT/TTS run offline from `models/weights/` and the HF cache.
+The summary stage uses a local Ollama model (`phi3.5:3.8b`) — have the
+Ollama app running (`ollama pull phi3.5:3.8b`). OCR is RapidOCR (ONNX).
+STT/TTS run offline from `models/weights/` and the HF cache.
 
 ## Test / bench a single stage
 

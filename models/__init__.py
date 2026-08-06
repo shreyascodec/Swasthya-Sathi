@@ -11,7 +11,7 @@ from models import dummy  # noqa: F401  (import for self-registration side effec
 
 # OCR engine adapters (Phase 2). Imports are lazy inside each adapter's
 # _build_engine, so importing these modules does NOT pull in paddleocr/surya.
-from models import ocr_paddle, ocr_stub, ocr_surya  # noqa: F401,E402
+from models import ocr_paddle, ocr_rapid, ocr_stub, ocr_surya  # noqa: F401,E402
 
 # Image-tag adapters (Phase 3). torch/torchvision imported lazily on load only.
 from models import imagetag_medgemma, imagetag_mobilenet, imagetag_stub  # noqa: F401,E402

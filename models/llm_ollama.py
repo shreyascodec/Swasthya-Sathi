@@ -1,11 +1,11 @@
-"""Ollama LLM adapter (primary runtime for Qwen2.5-3B-Instruct).
+"""Ollama LLM adapter (primary runtime for Phi-3.5-mini).
 
 Talks to a local Ollama server (offline once the model is pulled). Serves GGUF
 INT4 models with a single resident model — a good fit for the 8 GB laptop.
 
 Setup (per phase, on the 4060):
     # install Ollama, then:
-    ollama pull qwen2.5:3b-instruct
+    ollama pull phi3.5:3.8b
 """
 
 from __future__ import annotations

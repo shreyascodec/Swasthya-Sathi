@@ -63,8 +63,8 @@ summary:
   # ceiling. Without it the summary was truncated to a fraction of the findings.
   max_tokens_ceiling: 6144
   temperature: 0.0
-  # VARIANT (poc testing2): text-only summary — Qwen2.5-3B reads OCR text only;
-  # report page images are never fed to the summary LLM. Images enter the
+  # VARIANT (poc testing2): text-only summary — Phi-3.5 (Ollama) reads OCR text
+  # only; report page images are never fed to the summary LLM. Images enter the
   # pipeline solely through the image_tag stage (type + quality, no diagnosis).
   use_images: false
 

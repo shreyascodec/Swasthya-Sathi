@@ -1,0 +1,32 @@
+Swasthya Sathi — start here
+===========================
+
+FIRST TIME (needs internet)
+  Double-click:  SwasthyaSathiSetup.exe
+  Click:  Next  ->  Install  ->  Finish
+  The app opens and shows a progress window. The first run downloads the
+  speech + language models (this can take a while). Wait until it is ready.
+
+  If Windows shows "Windows protected your PC":
+    Click "More info", then "Run anyway". (The installer is safe; it is just
+    not code-signed yet.)
+
+EVERY DAY AFTER THAT
+  Double-click the "Swasthya Sathi" icon on the desktop.
+
+IF SOMETHING FAILS
+  Check internet, then run SwasthyaSathiSetup.exe again (it is safe to re-run),
+  or use the desktop icon which repairs setup automatically.
+  Log file:  logs\setup.log  (inside the install folder)
+
+WHAT GETS INSTALLED
+  • You do NOT need to install Python or anything else first — the installer
+    includes it. Internet is used only on the first run to fetch models;
+    the app then runs offline.
+  • GPU is used automatically when present; otherwise CPU.
+
+FOR THE PERSON WHO BUILDS THE INSTALLER
+  On a build PC with Node.js LTS and Inno Setup 6 installed:
+    powershell -ExecutionPolicy Bypass -File deploy\build_release.ps1
+  That produces a single file:  dist\SwasthyaSathiSetup.exe
+  Hand that one file to the clinic. See setup.md for details.

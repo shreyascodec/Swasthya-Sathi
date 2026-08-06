@@ -1,19 +1,19 @@
 """[4] Summary Generation — the main model bake-off stage.
 
-Loads the configured LLM via ModelManager (MedGemma-4B primary — the bake-off
-winner, text or text+image; Qwen via Ollama is the one-line fast swap; stub_llm
-for CPU/no-deps), builds a structured-fill
-prompt from ctx.ocr fields, generates JSON, parses it into SummarySchema, and
-runs the FAITHFULNESS GATE: any value that does not trace to an OCR field is
-dropped and recorded, so the stored summary is always faithful. The LLM is the
-only heavy model resident here (OCR must already be unloaded).
+Loads the configured LLM via ModelManager (Phi-3.5-mini via Ollama is the
+commercial primary; Qwen/MedGemma remain bake-off candidates; stub_llm for
+CPU/no-deps), builds a structured-fill prompt from ctx.ocr fields, generates
+JSON, parses it into SummarySchema, and runs the FAITHFULNESS GATE: any value
+that does not trace to an OCR field is dropped and recorded, so the stored
+summary is always faithful. The LLM is the only heavy model resident here
+(OCR must already be unloaded).
 
 Swap models by editing llm.primary in config/models.yaml; bench them with
 `python -m bench.runner` (produces the stakeholder proof).
 
 Tested/won/open: schema fill, faithfulness gate (drops injected hallucination),
-load/unload, and stub fallback verified. Open: real Qwen/Sarvam/MedGemma runs on
-the 4060 for the accuracy/Hindi/latency numbers (see bench/).
+load/unload, and stub fallback verified. Open: Phi prompt polish vs Qwen faith
+gap; Sarvam/MedGemma accuracy/Hindi/latency numbers (see bench/).
 """
 
 from __future__ import annotations

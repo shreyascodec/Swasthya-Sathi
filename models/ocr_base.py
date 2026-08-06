@@ -1,6 +1,6 @@
 """Shared OCR adapter contract + output types.
 
-Every OCR engine (PaddleOCR, Surya, stub) is a ModelManager adapter that
+Every OCR engine (RapidOCR, PaddleOCR, Surya, stub) is a ModelManager adapter that
 returns the same ``OCRPage`` shape, so the field-extraction layer and the stage
 are engine-agnostic and engines are swappable purely from config.
 """

@@ -8,7 +8,7 @@ text, and the engine is only built if at least one page actually needs it.
                 faster AND more accurate than OCR.
   3. cache    — page hash + engine spec seen before: stored result reused.
   4. engine   — remaining pages go through the configured OCR engine in ONE
-                batched call (PaddleOCR primary / Surya fallback / stub_ocr).
+                batched call (RapidOCR primary / Surya fallback / stub_ocr).
 
 Then the deterministic field extractor -> ctx.ocr (raw text + structured fields
 with confidence). Low-confidence fields are flagged for review. Engine load is
@@ -19,7 +19,7 @@ the ModelManager policy still evicts it when the LLM loads).
 Swap engines by editing ocr.primary.impl in config/models.yaml — no code change.
 
 Tested/won/open: extraction + confidence flagging + load/unload + engine-swap
-verified via the stub engine and a PDF text layer. Open: real PaddleOCR vs Surya
+verified via the stub engine and a PDF text layer. Open: real RapidOCR vs Surya
 accuracy bench on Indian printed reports (>=90% target) once samples are in hand.
 """
 

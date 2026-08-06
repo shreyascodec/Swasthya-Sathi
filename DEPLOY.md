@@ -11,7 +11,39 @@ machine. The server serves the built SPA **and** the API from a single origin on
                                API at /api
 ```
 
+## 0. First-run on a new PC (non-technical)
+
+**Build PC (once per release)** — needs Node.js:
+
+```powershell
+cd C:\Projects\Swasthya-Sathi
+powershell -ExecutionPolicy Bypass -File deploy\build_release.ps1
+```
+
+This produces `frontend/dist` (prebuilt UI) and `Setup.exe`. Zip/copy the whole
+folder to the clinic.
+
+**Clinic PC** — double-click **`Setup.exe`** (internet required the first time).
+
+It automatically:
+
+1. Detects GPU or falls back to CPU  
+2. Creates `.venv` and installs the right packages  
+3. Starts Ollama and downloads `phi3.5:3.8b` if needed  
+4. Downloads **Vaani Hindi STT** + multilingual Whisper + Piper English voice  
+5. Writes `config/env/local.yaml` for this machine  
+6. Prepares RapidOCR and opens the app  
+
+Daily use: **`SwasthyaSathi.bat`**. No questions. Logs: `logs/setup.log`.
+
+Rebuild Setup.exe only:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\build_setup_exe.ps1
+```
+
 ## 1. Build the UI (once per release)
+
 
 ```bash
 cd frontend && npm ci && npm run build && cd ..
