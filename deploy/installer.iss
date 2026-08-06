@@ -50,8 +50,10 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 Source: "..\server\*";         DestDir: "{app}\server";        Excludes: "__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs createallsubdirs
 Source: "..\core\*";           DestDir: "{app}\core";          Excludes: "__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs createallsubdirs
 Source: "..\stages\*";         DestDir: "{app}\stages";        Excludes: "__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs createallsubdirs
-; models\ ships the Python model wrappers but NOT the big weights (downloaded on first run).
-Source: "..\models\*";         DestDir: "{app}\models";        Excludes: "weights\*,__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs createallsubdirs
+; models\ ships the Python model wrappers but NOT the big weights (downloaded on
+; first run). No createallsubdirs here, so the excluded (empty) weights\ dir is
+; not recreated in the install; appliance_setup makes it at download time.
+Source: "..\models\*";         DestDir: "{app}\models";        Excludes: "weights\*,__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs
 ; config\ ships defaults but NOT a machine-specific env\local.yaml (written on first run).
 Source: "..\config\*";         DestDir: "{app}\config";        Excludes: "env\local.yaml,__pycache__\*,*\__pycache__\*,*.pyc"; Flags: recursesubdirs createallsubdirs
 ; Prebuilt UI (required; no Node on clinic PCs).
