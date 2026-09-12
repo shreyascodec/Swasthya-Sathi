@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Montserrat", "Noto Sans Devanagari", "Segoe UI", sans-serif;
+  --font-devanagari: "Noto Sans Devanagari", "Montserrat", sans-serif;
+
+  --color-primary-dark: #0f5c55;
+  --color-primary-dark-2: #0a453f;
+  --color-primary-green: #36b878;
+  --color-primary-green-2: #2a9d63;
+  --color-secondary-green: #8bcf9b;
+  --color-mint: #eaf7ef;
+  --color-mint-2: #dcf2e4;
+  --color-bg: #f7fbf7;
+  --color-white: #ffffff;
+  --color-text-primary: #173b38;
+  --color-text-secondary: #66817d;
+  --color-success: #35a86b;
+  --color-warning: #e0a92c;
+  --color-danger: #dd6b5b;
+
+  --animate-float: float 4.5s ease-in-out infinite;
+  --animate-glow-pulse: glowPulse 2.6s ease-in-out infinite;
+  --animate-listen-pulse: listenPulse 1.4s ease-in-out infinite;
+  --animate-fade-up: fadeUp 0.5s ease both;
+  --animate-fade-in: fadeIn 0.4s ease both;
+  --animate-dot-bounce: dotBounce 1.2s ease-in-out infinite;
+  --animate-scan-line: scanLine 2.2s ease-in-out infinite;
+  --animate-check-pop: checkPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-spin-slow: spin 2.4s linear infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes listenPulse {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dotBounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+
+@keyframes scanLine {
+  0% {
+    transform: translateY(0%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
