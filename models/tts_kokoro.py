@@ -34,7 +34,7 @@ from __future__ import annotations
 import numpy as np
 
 from core.model_manager import register_adapter
-from models.tts_base import Audio, TTSAdapterBase, TTSUnavailable
+from models.tts_base import Audio, TTSAdapterBase, TTSUnavailable, phoneme_timeline, token_timeline
 
 _REPO = "hexgrad/Kokoro-82M"
 
@@ -79,6 +79,39 @@ class KokoroTTSAdapter(TTSAdapterBase):
         duration_ms = int(len(pcm) / 2 / sr * 1000)
         return Audio(data=self.pcm_to_wav(pcm, sr), sample_rate=sr,
                      duration_ms=duration_ms, lang=lang)
+
+    def synthesize_aligned(self, text: str, lang: str = "hi"):  # pragma: no cover
+        """Same synthesis, but keep the ``phonemes`` half of each KPipeline chunk
+        (normally discarded) and turn it into a per-phoneme timeline for the
+        avatar's lip-sync. One pass — audio and timeline come from the same run."""
+        self.load()
+        pipe = self._handle["pipe"]
+        voice = self._handle["voice"]
+        sr = int(self.spec.get("sample_rate", 24000))
+
+        audio_parts: list[np.ndarray] = []
+        timeline: list[dict] = []
+        cursor_s = 0.0
+        for chunk in pipe(text, voice=voice):
+            samples = np.asarray(chunk[2], dtype=np.float32)
+            audio_parts.append(samples)
+            chunk_dur = len(samples) / sr
+            # Prefer Kokoro's model-native per-phoneme timing (the duration
+            # predictor exposes start/end per token); fall back to spreading the
+            # chunk's phoneme string when a build doesn't populate timestamps.
+            tl = token_timeline(getattr(chunk, "tokens", None), cursor_s)
+            if tl is None:
+                tl = phoneme_timeline(chunk[1] or "", cursor_s, chunk_dur)
+            timeline.extend(tl)
+            cursor_s += chunk_dur
+
+        audio = np.concatenate(audio_parts) if audio_parts else np.zeros(1, dtype=np.float32)
+        pcm = (np.clip(audio, -1.0, 1.0) * 32767.0).astype("<i2").tobytes()
+        self.sample_rate = sr
+        duration_ms = int(len(pcm) / 2 / sr * 1000)
+        a = Audio(data=self.pcm_to_wav(pcm, sr), sample_rate=sr,
+                  duration_ms=duration_ms, lang=lang)
+        return a, timeline
 
 
 register_adapter(

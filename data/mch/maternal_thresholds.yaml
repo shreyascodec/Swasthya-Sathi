@@ -1,0 +1,72 @@
+# Maternal (antenatal) risk thresholds — Swasthya Sakhi MCH mode.
+#
+# Same shape as data/labqar/reference_ranges.yaml so the existing deterministic
+# interpret engine (stages/interpret_rules.py) loads it unchanged: per-parameter
+# status in {low, normal, high, critical} by numeric comparison — NO model, NO
+# diagnosis, NO autonomous escalation. The overall RISK TIER is computed on top
+# of these statuses by stages/maternal_risk.py.
+#
+# ⚠️ PLACEHOLDER VALUES — PENDING CLINICIAN REVIEW.
+# Defaults below are drawn from public antenatal guidance and MUST be confirmed
+# by an OB-GYN / MoHFW-PMSMA reviewer before any clinical use. Sources noted per
+# parameter. Changing a cut-off is a YAML edit here — never a code change.
+#   Hb (pregnancy anaemia)          WHO: <11 g/dL anaemia; <7 severe
+#   BP (pre-eclampsia / gest. HTN)  ACOG/WHO: >=140/90 raised; >=160/110 severe
+#   GDM (fasting / 2h 75g OGTT)     DIPSI/IADPSG: fasting >=92; 2h >=140; >=200 overt
+#   Temperature (maternal sepsis)   >=37.5C raised; >=39C high
+#   Platelets (HELLP)               <1.5 lakh low; <1.0 lakh critical
+
+version: mch-maternal-poc-1
+analytes:
+  - canonical: Hemoglobin
+    aliases: [hemoglobin, haemoglobin, hb, hgb]
+    unit: g/dL
+    default: {low: 11.0, high: 16.0}   # WHO pregnancy anaemia cutoff 11.0
+    critical: {low: 7.0}               # severe anaemia
+
+  - canonical: Systolic BP
+    aliases: [systolic bp, systolic, sbp, systolic blood pressure]
+    unit: mmHg
+    direction: high_only
+    default: {high: 140}
+    critical: {high: 160}
+
+  - canonical: Diastolic BP
+    aliases: [diastolic bp, diastolic, dbp, diastolic blood pressure]
+    unit: mmHg
+    direction: high_only
+    default: {high: 90}
+    critical: {high: 110}
+
+  - canonical: Fasting Blood Sugar
+    aliases: [fasting blood sugar, fbs, fasting glucose, fasting plasma glucose, fpg]
+    unit: mg/dL
+    direction: high_only
+    default: {high: 92}                 # IADPSG fasting GDM cutoff
+    critical: {high: 126}              # overt diabetes range
+
+  - canonical: Blood Sugar
+    aliases: [blood sugar, ogtt, 2 hour glucose, 2h glucose, post prandial, postprandial, ppbs, random blood sugar, rbs, glucose, plasma glucose]
+    unit: mg/dL
+    direction: high_only
+    default: {high: 140}               # DIPSI 2h 75g >=140 -> GDM
+    critical: {high: 200}
+
+  - canonical: Pulse
+    aliases: [pulse, pulse rate, heart rate, hr]
+    unit: bpm
+    default: {low: 60, high: 100}
+    critical: {high: 120}
+
+  - canonical: Temperature
+    aliases: [temperature, temp]
+    unit: "°C"
+    direction: high_only
+    default: {high: 37.5}
+    critical: {high: 39.0}
+
+  - canonical: Platelets
+    aliases: [platelets, platelet count, plt]
+    unit: lakhs/cumm
+    default: {low: 1.5, high: 4.1}
+    critical: {low: 1.0}

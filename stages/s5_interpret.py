@@ -81,6 +81,15 @@ class InterpretStage(Stage):
 
         ctx.interpretations = flags
         self._surface_high_priority(ctx, flags)
+
+        # MCH mode: stratify the maternal risk tier from the per-parameter
+        # statuses (vitals only here; the danger-sign answers are folded in at
+        # the report stage, once the Q&A has run). Config-selected so the lab
+        # path is untouched.
+        if cfg.get("mode") == "maternal" and ctx.summary is not None:
+            from stages.maternal_risk import assess_maternal_risk
+            ctx.summary.content["maternal_risk"] = assess_maternal_risk(findings, flags)
+
         contradictions = self._narrative_contradictions(ctx, flags)
 
         counts = {s: sum(1 for x in flags if x.status == s)

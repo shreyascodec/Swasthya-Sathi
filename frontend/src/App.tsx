@@ -42,7 +42,7 @@ const STAGE_ICON: Record<string, string> = {
 const STAGE_DOING: Record<string, string> = {
   intake: "Checking image quality…", ocr: "Reading the report text…",
   image_tag: "Tagging clinical images…", summary: "Writing the summary…",
-  interpret: "Interpreting lab values…", intake_qa: "Preparing questions…",
+  interpret: "Scoring maternal risk…", intake_qa: "Preparing danger-sign questions…",
   voice: "Creating the voice explanation…", hashing: "Sealing & hashing…",
   report: "Assembling the final report…",
 };
@@ -232,8 +232,8 @@ export default function App() {
         <div className="brand" onClick={() => { setPhase("welcome"); }} style={{ cursor: "pointer" }}>
           <span className="brand-mark">📋</span>
           <span className="brand-txt">
-            <span className="brand-hi">स्वास्थ्य साथी</span>
-            <span className="brand-en">Swasthya Sathi · Point-of-care</span>
+            <span className="brand-hi">स्वास्थ्य सखी</span>
+            <span className="brand-en">Swasthya Sakhi · Maternal health</span>
           </span>
         </div>
         <div className="bar-spacer" />
@@ -274,8 +274,8 @@ export default function App() {
             {phase === "upload" && (
               <div className="fade-in">
                 <div className="page-head">
-                  <h2>Upload the lab report</h2>
-                  <p>Add photos or a PDF of the printed report. You can add more than one page.</p>
+                  <h2>Upload the ANC card or report</h2>
+                  <p>Add photos or a PDF of the antenatal card / lab report. You can add more than one page.</p>
                 </div>
 
                 <div
@@ -430,9 +430,9 @@ function Welcome({ lang, running, onPick, onStart }: {
     <div className="welcome fade-in">
       <div className="welcome-inner">
         <div className="welcome-mark">📋</div>
-        <h1>स्वास्थ्य साथी</h1>
-        <div className="en-name">Swasthya Sathi</div>
-        <p className="tag">Your health companion. Upload a lab report and get a clear, spoken explanation in your language.</p>
+        <h1>स्वास्थ्य सखी</h1>
+        <div className="en-name">Swasthya Sakhi</div>
+        <p className="tag">Maternal health risk screening. Upload an ANC card or antenatal report — we flag risk and ask danger-sign questions in her language.</p>
 
         <div className="prompt">Choose your language · अपनी भाषा चुनें</div>
         <div className="lang-grid">
@@ -494,8 +494,8 @@ function ResultHero({ snap, totalDone, answered }: { snap: Snapshot; totalDone: 
     <div className="result-hero fade-in">
       <div className="seal">✓</div>
       <div style={{ minWidth: 0 }}>
-        <h2>Report ready</h2>
-        <p>All {totalDone} stages complete{snap.ctx.report?.version ? ` · report v${snap.ctx.report.version}` : ""}. Open a stage below to inspect the details.</p>
+        <h2>Maternal risk report ready</h2>
+        <p>All {totalDone} stages complete{snap.ctx.report?.version ? ` · report v${snap.ctx.report.version}` : ""}. Open Interpret for the risk tier, then inspect the other stages.</p>
       </div>
       <div className="result-stats">
         {f && !f.parse_error && (

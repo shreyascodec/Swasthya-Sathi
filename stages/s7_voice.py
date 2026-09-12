@@ -122,9 +122,9 @@ class VoiceStage(Stage):
                 return ""
         return out
 
-    def _utterances(self, ctx: SessionContext) -> list[tuple[str, str]]:
-        """(kind, text) to speak, in play order: summary narrative, then questions."""
-        items: list[tuple[str, str]] = []
+    def _utterances(self, ctx: SessionContext) -> list[tuple[str, str, str | None]]:
+        """(kind, text, question_id) to speak: summary narrative, then questions."""
+        items: list[tuple[str, str, str | None]] = []
         if self._cfg().get("speak_summary", True) and ctx.summary:
             narr = ctx.summary.content.get("narrative_en", "").strip()
             if narr and ctx.lang != "en" and self._cfg().get("translate_summary", True):
@@ -132,34 +132,36 @@ class VoiceStage(Stage):
                 # an accented English readout beats silence.
                 narr = self._translate_for_patient(narr, ctx.lang) or narr
             if narr:
-                items.append(("summary", narr))
+                items.append(("summary", narr, None))
         if self._cfg().get("speak_questions", True):
             for q in ctx.questions:
                 if q.rendered_text.strip():
-                    items.append(("question", q.rendered_text.strip()))
+                    items.append(("question", q.rendered_text.strip(), q.id))
         max_clips = int(self._cfg().get("max_clips", 12))
         return items[:max_clips]
 
     def run(self, ctx: SessionContext) -> SessionContext:
-        # Piper is fast (RTF ~0.03), so every utterance is synthesized live — no
-        # caching/pre-rendering needed (that scaffolding was for IndicF5's ~90s
-        # synthesis and was removed once Piper became the engine; see record.md).
+        # Piper/Kokoro are fast (RTF ~0.03), so every utterance is synthesized
+        # once here — including phoneme alignment for the LiveQA avatar, which
+        # replays these clips instead of calling /api/avatar/tts again.
         if self._tts is None:
             self.load(ctx.lang)
         out_dir = self._audio_dir(ctx)
         clips: list[AudioClip] = []
-        for i, (kind, text) in enumerate(self._utterances(ctx)):
-            audio = self._tts.synthesize(text, lang=ctx.lang)
+        for i, (kind, text, question_id) in enumerate(self._utterances(ctx)):
+            audio, timeline = self._tts.synthesize_aligned(text, lang=ctx.lang)
             path = out_dir / f"{i:02d}_{kind}.wav"
             path.write_bytes(audio.data)
             clips.append(AudioClip(
                 id=f"{ctx.session_id}:tts:{i:02d}", path=str(path),
-                lang=ctx.lang, kind="tts", duration_ms=audio.duration_ms))
+                lang=ctx.lang, kind="tts", duration_ms=audio.duration_ms,
+                utterance=kind, question_id=question_id, alignment=timeline))
         ctx.audio_out = clips
+        aligned = sum(1 for c in clips if c.alignment)
         total_ms = sum(c.duration_ms or 0 for c in clips)
         ctx.log(
             "stage.voice.done",
             detail=(f"impl={self._active_impl} avatar_enabled={self._avatar_enabled()} "
-                    f"clips={len(clips)} total_ms={total_ms}"),
+                    f"clips={len(clips)} aligned={aligned} total_ms={total_ms}"),
         )
         return ctx

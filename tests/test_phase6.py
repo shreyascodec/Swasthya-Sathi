@@ -50,12 +50,39 @@ def test_off_bank_guardrail() -> None:
 
 # --- triggers ----------------------------------------------------------------
 def test_stale_report_fires_and_references_real_date() -> None:
-    facts = _facts(dates=["12/05/2024"])   # ~26 months before 2026-07-17
+    # A stale report is still a real report — it has lab values (an old date on
+    # its own is not medical and is gated out); include one so the doc qualifies.
+    facts = _facts(labs=[LabFact("Hemoglobin", "13.5", "g/dL", "normal")],
+                   present={"hemoglobin"},
+                   dates=["12/05/2024"])   # ~26 months before 2026-07-17
     qs = select(BANK, facts, max_questions=5, stale_report_months=6)
     gap = [q for q in qs if q.pattern_id == "gap_stale_report"]
     assert gap, "stale report should fire the gap question"
     assert "12/05/2024" in gap[0].text_en
     assert "12/05/2024" in gap[0].text_hi
+
+
+def test_non_medical_document_gets_no_questions() -> None:
+    # STRICT guardrail: a document with no recognised lab value or medication
+    # (a software doc, an invoice) must yield ZERO intake questions — the
+    # `always` standard-history fillers must not fire for a non-report. A stray
+    # date alone does not make it medical.
+    assert select(BANK, _facts()) == []
+    assert select(BANK, _facts(dates=["01/01/2026"])) == []
+
+
+def test_different_reports_get_different_grounded_questions() -> None:
+    # Two different reports must not collapse to the same generic set: the
+    # report-specific (grounded) questions differ and are ranked ahead of the
+    # capped standard-history fillers.
+    diabetic = _facts(labs=[LabFact("Glucose Fasting", "156", "mg/dL", "high")],
+                      present={"glucose fasting"})
+    anemic = _facts(labs=[LabFact("Hemoglobin", "8.1", "g/dL", "low")],
+                    present={"hemoglobin"})
+    q1 = {q.pattern_id for q in select(BANK, diabetic)}
+    q2 = {q.pattern_id for q in select(BANK, anemic)}
+    assert "cond_high_glucose" in q1 and "cond_high_glucose" not in q2
+    assert "cond_anemia" in q2 and "cond_anemia" not in q1
 
 
 def test_recent_report_does_not_fire_gap() -> None:

@@ -74,7 +74,7 @@ _REAP_INTERVAL_S = 120
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(
-        "starting Swasthya Sathi v%s — env=%s device=%s data_dir=%s",
+        "starting Swasthya Sakhi v%s — env=%s device=%s data_dir=%s",
         APP_VERSION, PIPELINE.config.env.name, PIPELINE.config.env.device, DATA_DIR,
     )
     _sweep_orphan_dirs()  # crash recovery: drop stale session dirs from a prior run
@@ -93,7 +93,7 @@ async def lifespan(app: FastAPI):
         log.info("shutdown complete — models released")
 
 
-app = FastAPI(title="Swasthya Sathi API", version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title="Swasthya Sakhi API", version=APP_VERSION, lifespan=lifespan)
 if CFG.allowed_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -111,6 +111,12 @@ async def _log_requests(request: Request, call_next):
     # Skip the noisy static/media chatter; log the API surface.
     if request.url.path.startswith("/api"):
         log.info("%s %s -> %s (%.0f ms)", request.method, request.url.path, response.status_code, dt)
+    # Never cache the SPA HTML shell: it references hash-named JS/CSS, so a cached
+    # shell pins an OLD bundle after a redeploy (a stale kiosk mid-demo). The
+    # hashed assets themselves stay cacheable. Applied here so it covers the
+    # StaticFiles(html=True) mount without touching it.
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     return response
 
 
@@ -303,6 +309,15 @@ def _summary_parse_error(c: SessionContext) -> str | None:
         if isinstance(u, str) and u.startswith("parse_error"):
             return u
     return None
+
+
+def _looks_like_report(c: SessionContext) -> bool:
+    """Whether the summary extracted anything clinical — at least one lab value
+    or a named medication. The gate for the 'not a lab report' guardrail; kept
+    here (not just in the intake_qa rules) so a non-report is halted BEFORE the
+    interview stages ever run, not merely left question-less."""
+    content = c.summary.content if c.summary else {}
+    return bool(content.get("lab_findings") or content.get("medications"))
 
 
 def _stage_note(name: str, c: SessionContext) -> str:
@@ -515,6 +530,8 @@ def _snapshot(sid: str) -> dict:
             "faithfulness": _faithfulness(c),
             "recovered": _recovered_analytes(c),
             "narrative_review": (c.summary.content.get("narrative_review") if c.summary else None) or [],
+            # MCH maternal mode: risk tier + reasons + action (None in lab mode).
+            "maternal_risk": (c.summary.content.get("maternal_risk") if c.summary else None),
         },
     }
 
@@ -545,6 +562,82 @@ def ready() -> dict:
         "unavailable": READINESS["unavailable"],
         "seconds": READINESS["seconds"],
         "sessions": len(SESSIONS),
+    }
+
+
+class AvatarTTSBody(BaseModel):
+    text: str
+    lang: str = "hi"
+
+
+@app.post("/api/avatar/tts")
+def avatar_tts(body: AvatarTTSBody) -> dict:
+    """Speak ``text`` with the pipeline's own TTS (Hindi Kokoro / English Piper)
+    and return audio + a phoneme timeline for the 3D avatar's lip-sync.
+
+    Response shape matches the avatar's expected TTS contract:
+      { audio_base64, sample_rate, audio_duration, alignment: {characters,
+        character_start_times_seconds, character_end_times_seconds} }
+    Reuses the same warmed voice as the kiosk — no second TTS server, offline.
+    """
+    import base64
+
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "text is empty")
+    lang = (body.lang or "hi").strip() or "hi"
+    logical = "tts_en" if (lang == "en" and "tts_en" in PIPELINE.config.models) else "tts"
+
+    with PIPELINE_LOCK:  # serialize against warmup / stage runs (single GPU)
+        tts = PIPELINE.models.get(logical)
+        audio, timeline = tts.synthesize_aligned(text, lang=lang)
+
+    chars, starts, ends = [], [], []
+    for e in timeline or []:
+        chars.append(e["phoneme"])
+        starts.append(round(e["start"], 4))
+        ends.append(round(e["end"], 4))
+    alignment = {
+        "characters": chars,
+        "character_start_times_seconds": starts,
+        "character_end_times_seconds": ends,
+    }
+    return {
+        "audio_base64": base64.b64encode(audio.data).decode(),
+        "sample_rate": audio.sample_rate,
+        "audio_duration": (audio.duration_ms or 0) / 1000.0,
+        "voice": logical,
+        "normalized_alignment": alignment,
+        "alignment": alignment,
+    }
+
+
+@app.post("/api/avatar/smoke-clip")
+def avatar_smoke_clip(body: AvatarTTSBody) -> dict:
+    """Phase-B browser smoke: write one Stage-[7]-shaped clip under data_dir and
+    return ``{path, alignment}`` so the UI can exercise ``speakClip`` (file
+    fetch + lip-sync) without running the full pipeline.
+    """
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "text is empty")
+    lang = (body.lang or "hi").strip() or "hi"
+    logical = "tts_en" if (lang == "en" and "tts_en" in PIPELINE.config.models) else "tts"
+
+    with PIPELINE_LOCK:
+        tts = PIPELINE.models.get(logical)
+        audio, timeline = tts.synthesize_aligned(text, lang=lang)
+
+    out_dir = DATA_DIR / "_avatar_smoke"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"smoke_{lang}.wav"
+    path.write_bytes(audio.data)
+    return {
+        "path": str(path),
+        "alignment": timeline or [],
+        "audio_duration": (audio.duration_ms or 0) / 1000.0,
+        "sample_rate": audio.sample_rate,
+        "voice": logical,
     }
 
 
@@ -621,6 +714,21 @@ def run_stage(sid: str) -> dict:
                 "detail": "The LLM did not return valid JSON, so the report draft "
                           "is empty. Continue (later stages run on an empty summary) "
                           "or stop and retry with another model.",
+            }
+        # Gate: the upload is not a recognisable lab/medical report. STRICT — a
+        # non-medical document (a software doc, an invoice) or an unreadable scan
+        # must not be carried into interpretation and a spoken patient interview.
+        # Runs only if the summary parsed cleanly (else the parse-error gate above
+        # already owns the pause) and nothing yielded a lab value or medication.
+        if stage.name == "summary" and s.paused is None and not _looks_like_report(s.ctx):
+            info["status"] = "flagged"
+            s.paused = {
+                "kind": "not_a_report", "stage": "summary",
+                "detail": "This does not look like a lab report — no recognised "
+                          "test values or medications were found. Please check the "
+                          "uploaded document. Stop and re-upload the correct report, "
+                          "or continue only if you are certain this is a valid report "
+                          "the reader misread.",
             }
         # Gate: an uploaded page failed the quality check.
         if stage.name == "intake":
@@ -772,6 +880,51 @@ def serve_file(path: str, request: Request) -> Response:
     return FileResponse(p, media_type=media_type, headers={"accept-ranges": "bytes"})
 
 
+# --- 3D avatar assets: serve with caching disabled ---------------------------
+# StaticFiles / Vite can answer a browser revalidation with 304 Not Modified.
+# three.js's GLTFLoader mishandles that 304 — it surfaces the empty body as
+# "Failed to load buffer Brenin.bin" and the avatar never renders (only the
+# backdrop shows). Serving mesh/anims/textures with Cache-Control: no-store and
+# no ETag means the browser never revalidates, so every request is a full 200.
+# Assets are ~5 MB and local, so re-fetching per load is free.
+#
+# Canonical URL: /avatar/characters/... (must not collide with SPA /assets/*).
+# Look under dist first (production), then frontend/public (dev / no-dist).
+_FRONTEND = Path(__file__).resolve().parent.parent / "frontend"
+_DIST = _FRONTEND / "dist"
+_AVATAR_CANDIDATES = [
+    (_DIST / "avatar" / "characters").resolve(),
+    (_DIST / "assets" / "characters").resolve(),          # legacy path
+    (_FRONTEND / "public" / "avatar" / "characters").resolve(),
+    (_FRONTEND / "public" / "assets" / "characters").resolve(),
+]
+_AVATAR_MEDIA = {
+    ".gltf": "model/gltf+json", ".glb": "model/gltf-binary",
+    ".buf": "application/octet-stream", ".bin": "application/octet-stream",
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+}
+
+
+def _avatar_file(sub: str) -> Path | None:
+    for root in _AVATAR_CANDIDATES:
+        if not root.is_dir():
+            continue
+        p = (root / sub).resolve()
+        if str(p).startswith(str(root)) and p.is_file():
+            return p
+    return None
+
+
+@app.get("/avatar/characters/{sub:path}")
+def avatar_asset(sub: str) -> Response:
+    p = _avatar_file(sub)
+    if p is None:
+        raise HTTPException(404, "not found")
+    media = _AVATAR_MEDIA.get(p.suffix.lower(), "application/octet-stream")
+    return Response(content=p.read_bytes(), media_type=media,
+                    headers={"Cache-Control": "no-store"})
+
+
 # --- production UI -----------------------------------------------------------
 # Serve the built SPA from this same process when `frontend/dist` exists, so a
 # deployed kiosk is ONE origin and ONE command (`uvicorn server.main:app`) with
@@ -779,7 +932,6 @@ def serve_file(path: str, request: Request) -> Response:
 # only resolve if the UI is served from the API origin — in dev that is Vite's
 # proxy, in production it is this mount. Mounted last: "/" would otherwise
 # shadow every /api route above.
-_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if _DIST.is_dir():
     from fastapi.staticfiles import StaticFiles
 

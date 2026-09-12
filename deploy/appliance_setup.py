@@ -392,15 +392,51 @@ def ensure_phi_model(progress: ProgressFn) -> None:
 def _download_file(url: str, dest: Path, timeout: int = 600) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(dest.suffix + ".part")
-    log.info("download %s -> %s", url, dest)
     req = urllib.request.Request(url, headers={"User-Agent": "SwasthyaSathi-Setup/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp, tmp.open("wb") as out:
-        shutil.copyfileobj(resp, out)
-    tmp.replace(dest)
+    last_exc: Exception | None = None
+    for attempt in range(1, 4):
+        try:
+            log.info("download %s -> %s (try %d)", url, dest, attempt)
+            with urllib.request.urlopen(req, timeout=timeout) as resp, tmp.open("wb") as out:
+                shutil.copyfileobj(resp, out)
+            tmp.replace(dest)
+            return
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            last_exc = exc
+            log.warning("download attempt %d failed: %s", attempt, exc)
+            if attempt < 3:
+                time.sleep(5 * attempt)
+    raise RuntimeError(f"download failed after retries: {url}\n{last_exc}")
+
+
+def _hf_token() -> str | None:
+    """Optional Hugging Face token to lift anonymous rate limits / gated repos.
+
+    Looked up from the environment or config/hf_token.txt. Never logged.
+    """
+    for var in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_TOKEN"):
+        val = os.environ.get(var)
+        if val and val.strip():
+            return val.strip()
+    tok_file = REPO_ROOT / "config" / "hf_token.txt"
+    try:
+        if tok_file.exists():
+            t = tok_file.read_text(encoding="utf-8").strip()
+            if t:
+                return t
+    except OSError:
+        pass
+    return None
 
 
 def _hf_snapshot(repo_id: str, dest: Path, *, label: str) -> None:
-    """Download a Hub repo into dest (resumable). Expects CTranslate2 model.bin."""
+    """Download a Hub repo into dest. Resumable + retried. Expects CT2 model.bin.
+
+    The common first-run failure is Hugging Face throttling a token-less multi-GB
+    pull (HTTP 429), or a mid-download network drop. snapshot_download resumes
+    already-fetched files, so we retry with exponential backoff; a token (if set)
+    lifts the anonymous rate limit.
+    """
     marker = dest / "model.bin"
     if marker.exists() and marker.stat().st_size > 1_000_000:
         log.info("%s already present at %s", label, dest)
@@ -412,16 +448,38 @@ def _hf_snapshot(repo_id: str, dest: Path, *, label: str) -> None:
             "huggingface_hub is required to download speech models. Re-run Setup."
         ) from exc
     dest.mkdir(parents=True, exist_ok=True)
-    log.info("snapshot_download %s -> %s", repo_id, dest)
-    snapshot_download(
-        repo_id=repo_id,
-        local_dir=str(dest),
+    token = _hf_token()
+    log.info("snapshot_download %s -> %s (token=%s)", repo_id, dest, "yes" if token else "no")
+
+    attempts = 5
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            snapshot_download(
+                repo_id=repo_id,
+                local_dir=str(dest),
+                token=token,
+                max_workers=2,          # fewer parallel connections -> fewer 429s
+            )
+            if marker.exists() and marker.stat().st_size > 1_000_000:
+                return
+            last_exc = RuntimeError("model.bin missing/too small after download")
+        except Exception as exc:  # noqa: BLE001 — includes HfHubHTTPError (429), network
+            last_exc = exc
+            log.warning("%s download attempt %d/%d failed: %s", label, attempt, attempts, exc)
+        if attempt < attempts:
+            backoff = min(60, 5 * (2 ** (attempt - 1)))  # 5,10,20,40s
+            log.info("retrying %s in %ds…", label, backoff)
+            time.sleep(backoff)
+
+    raise RuntimeError(
+        f"{label} download did not complete after {attempts} tries (model.bin missing under {dest}).\n"
+        "This is usually Hugging Face rate-limiting a token-less download (HTTP 429),\n"
+        "not an internet outage. To fix, do ONE of:\n"
+        "  • Set an HF read token: put it in config\\hf_token.txt (or HF_TOKEN env), re-run Setup.\n"
+        "  • Pre-copy the models\\weights folder from a working PC into this install.\n"
+        f"Last error: {last_exc}"
     )
-    if not marker.exists():
-        raise RuntimeError(
-            f"{label} download incomplete (model.bin missing under {dest}).\n"
-            "Check internet and run Setup again."
-        )
 
 
 def ensure_model_assets(py: Path, progress: ProgressFn) -> None:

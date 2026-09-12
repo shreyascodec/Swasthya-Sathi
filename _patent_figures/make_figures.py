@@ -72,7 +72,7 @@ def save(fig, name):
 
 def fig1(labeled):
     fig, ax = new_ax()
-    box(ax, 38, 42, 24, 16, "COMPUTE UNIT\n(single ~8 GB GPU box)", labeled, fs=FS)
+    box(ax, 38, 42, 24, 16, "COMPUTE UNIT\n(low-power edge device:\nNVIDIA Jetson\nOrin NX, 16 GB)", labeled, fs=6.0)
     box(ax, 6, 68, 22, 12, "Camera /\nDocument scanner", labeled)
     box(ax, 6, 20, 22, 12, "Microphone", labeled)
     box(ax, 72, 68, 22, 12, "Display", labeled)
@@ -163,7 +163,7 @@ def fig3(labeled):
     box(ax, 74, 66, 20, 7, "PINNED (small,\nalways resident)", labeled, fs=6.8)
     box(ax, 74, 56, 20, 7, "PINNED", labeled, fs=6.8)
     box(ax, 74, 34, 20, 18, "ONE HEAVY MODEL\n(swapped in/out)", labeled, fs=6.8)
-    label(ax, 84, 79, "GPU memory (ceiling)", labeled, fs=7, style="normal")
+    label(ax, 84, 79, "Device memory (ceiling)", labeled, fs=7, style="normal")
     arrow(ax, 62, 50, 72, 52)
     box(
         ax,
@@ -242,14 +242,14 @@ def fig4(labeled):
 
 
 def fig5(labeled):
-    """Build-time GPL phonemizer vs shipped Apache voice — data-only crossing."""
+    """Build-time phoneme precompute vs shipped run-time assembly — data-only crossing."""
     fig, ax = new_ax(13, 8)
     ax.plot([50, 50], [5, 88], color="black", lw=2, linestyle=(0, (6, 4)))
     label(
         ax,
         25,
         94,
-        "BUILD PHASE  (developer machine — copyleft tool allowed)",
+        "BUILD PHASE  (developer machine)",
         labeled,
         fs=7.5,
         style="normal",
@@ -258,7 +258,7 @@ def fig5(labeled):
         ax,
         75,
         94,
-        "SHIPPED KIOSK  (no copyleft code present)",
+        "SHIPPED DEVICE  (run time)",
         labeled,
         fs=7.5,
         style="normal",
@@ -276,7 +276,7 @@ def fig5(labeled):
         fs=7,
     )
     arrow(ax, 24, 72, 24, 64)
-    box(ax, 8, 52, 32, 12, "GPL PHONEMIZER\n(espeak-ng — build-time only)", labeled, fs=7)
+    box(ax, 8, 52, 32, 12, "PHONEMIZER\n(build-time only)", labeled, fs=7)
     arrow(ax, 24, 52, 24, 42)
     box(ax, 8, 28, 32, 14, "PHONEME TABLE\n(plain data file)", labeled, fs=7.5)
 
@@ -291,7 +291,7 @@ def fig5(labeled):
     box(ax, 58, 28, 16, 14, "Phoneme table\n(shipped)", labeled, fs=7)
     arrow(ax, 66, 42, 66, 50)  # table up into assemble
     arrow(ax, 76, 50, 76, 22)
-    box(ax, 58, 8, 36, 14, "NEURAL VOICE MODEL\n(Apache-2.0) -> speaker", labeled, fs=7)
+    box(ax, 58, 8, 36, 14, "NEURAL VOICE MODEL\n-> speaker", labeled, fs=7)
 
     if labeled:
         ax.text(50, 99, "FIG. 5", ha="center", fontsize=11, weight="bold")

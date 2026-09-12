@@ -99,6 +99,13 @@ _DATE_RES = [
 
 _DOCTOR_RE = re.compile(r"\bDr\.?\s+[A-Z][A-Za-z.]*(?:\s+[A-Z][A-Za-z.]*){0,3}")
 
+# Blood pressure "sys/dia" behind an explicit BP label (MCH mode). Bounded 2-3
+# digits each so it can't match dates or ratios.
+_BP_RE = re.compile(
+    r"(?:b\.?\s*p\.?|blood\s*pressure)\s*[:\-]?\s*(?P<sys>\d{2,3})\s*/\s*(?P<dia>\d{2,3})",
+    re.IGNORECASE,
+)
+
 # --- vertical (one-cell-per-line) table layout --------------------------------
 # Real Indian lab PDFs emit each table CELL on its own line, not a row per line:
 #     Blood Urea / : / 33.65 / mg/dl / 0-48.0 mg/dl
@@ -416,5 +423,12 @@ def extract_fields(
     for date_re in _DATE_RES:
         for dm in date_re.finditer(text):
             add("date", dm.group(0).strip(), None, [dm.group(0)])
+
+    # Blood pressure "sys/dia" — a combined reading the numeric value patterns
+    # above cannot capture (the '/' breaks value+unit). Needed for MCH mode
+    # (pre-eclampsia). Additive and lab-safe: only fires on an explicit BP label.
+    for bm in _BP_RE.finditer(normalize_ocr_punctuation(text)):
+        sys, dia = bm.group("sys"), bm.group("dia")
+        add("Blood Pressure", f"{sys}/{dia}", "mmHg", [bm.group(0)])
 
     return fields

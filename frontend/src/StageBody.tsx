@@ -112,7 +112,7 @@ export function StageBody({ name, snap }: { name: string; snap: Snapshot }) {
     const review = snap.derived.narrative_review;
     return (
       <>
-        <h4 style={{ marginBottom: 8 }}>स्वास्थ्य साथी रिपोर्ट (draft v{c.summary.version})</h4>
+        <h4 style={{ marginBottom: 8 }}>स्वास्थ्य सखी रिपोर्ट (draft v{c.summary.version})</h4>
         {f && !f.parse_error && f.ok && (
           <div className="banner ok"><span>✓ Faithfulness {Math.round(f.score * 100)}% — every value traces to OCR.</span></div>
         )}
@@ -158,10 +158,35 @@ export function StageBody({ name, snap }: { name: string; snap: Snapshot }) {
   }
 
   if (name === "interpret") {
-    if (!c.interpretations.length) return <p className="muted">No lab flags.</p>;
+    const mr = snap.derived.maternal_risk;
+    if (!c.interpretations.length && !mr) return <p className="muted">No lab flags.</p>;
     const recovered = snap.derived.recovered;
+    const tierClass: Record<string, string> = { high: "crit", moderate: "warn", low: "ok", unknown: "info" };
     return (
       <>
+        {mr && (
+          <div className={`banner ${tierClass[mr.tier] || "info"}`} style={{ display: "block" }}>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>
+              🤰 Maternal risk: {mr.tier_label.toUpperCase()}
+              {mr.gestational_age ? ` · ${mr.gestational_age}` : ""}
+            </div>
+            <div style={{ marginTop: 4 }}><b>Action:</b> {mr.action}</div>
+            {mr.red_flags.length > 0 && (
+              <div style={{ marginTop: 4 }}>
+                <b>Danger signs:</b>
+                <ul style={{ margin: "2px 0 0", paddingLeft: 18 }}>
+                  {mr.red_flags.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+              </div>
+            )}
+            {mr.reasons.length > 0 && (
+              <div className="cap" style={{ marginTop: 4 }}>Because: {mr.reasons.join(" · ")}</div>
+            )}
+            <div className="cap" style={{ marginTop: 4, opacity: 0.8 }}>
+              Rule-based triage from maternal thresholds — a risk STATUS, not a diagnosis. Thresholds pending clinician review.
+            </div>
+          </div>
+        )}
         {snap.derived.narrative_review.length > 0 && (
           <div className="banner warn">
             <b>⚠ Narrative disagrees with the lab flags — the flags are correct.</b>

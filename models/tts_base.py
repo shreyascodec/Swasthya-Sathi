@@ -32,6 +32,107 @@ class Audio:
     lang: str
 
 
+# --- Phoneme → viseme timeline (avatar lip-sync seam) --------------------------
+# The 3D avatar wants a per-phoneme timeline (IPA symbol + start/end seconds) so
+# it can drive mouth blendshapes. Engines that expose phonemes (Kokoro via misaki)
+# build a real timeline; others return None and the avatar falls back to
+# amplitude-driven jaw movement. Preferred timing is Kokoro's model-native
+# per-token start/end (see ``token_timeline``); when a build doesn't expose it the
+# durations are heuristic (vowels hold longer than consonants) then scaled to the
+# chunk's real audio duration — the same approach the reference avatar server uses.
+_VOWELS = set("æɑaəɛɪiɔoʊuʌɐeɜɒøyɘɵɪ̈")
+_FRICATIVES = set("fsθðʃʒhvzɕʑxɣ")
+_IPA_DIGRAPHS = ("dʒ", "tʃ", "aɪ", "aʊ", "ɔɪ", "eɪ", "oʊ", "d̪", "t̪")
+
+
+def split_ipa(s: str) -> list[str]:
+    """Split an IPA phoneme string into symbols, dropping stress/length marks."""
+    out: list[str] = []
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if ch == " ":
+            out.append(" ")
+            i += 1
+        elif i + 1 < len(s) and s[i:i + 2] in _IPA_DIGRAPHS:
+            out.append(s[i:i + 2])
+            i += 2
+        elif ch in ("ˈ", "ˌ", "ː", "ˑ"):   # stress / length markers — skip
+            i += 1
+        elif not ch.strip():
+            i += 1
+        else:
+            out.append(ch)
+            i += 1
+    return out
+
+
+def phoneme_timeline(ph_str: str, start_s: float, dur_s: float) -> list[dict]:
+    """Distribute a chunk's phonemes across its audio duration (list of
+    {phoneme, start, end}). Empty when there are no phonemes."""
+    phs = split_ipa(ph_str or "")
+    if not phs or dur_s <= 0:
+        return []
+
+    def weight(p: str) -> float:
+        if p == " ":
+            return 0.12
+        if p in _VOWELS:
+            return 0.10
+        if p in _FRICATIVES:
+            return 0.08
+        return 0.06
+
+    weights = [weight(p) for p in phs]
+    total = sum(weights) or 1.0
+    scale = dur_s / total
+    out: list[dict] = []
+    t = start_s
+    for p, w in zip(phs, weights):
+        d = w * scale
+        out.append({"phoneme": p, "start": t, "end": t + d})
+        t += d
+    return out
+
+
+def token_timeline(tokens, cursor_s: float = 0.0) -> list[dict] | None:
+    """Per-phoneme timeline from misaki tokens carrying model-native start/end
+    timestamps (Kokoro's duration predictor). Far tighter than
+    :func:`phoneme_timeline`, which spreads a whole chunk's phonemes by a fixed
+    heuristic — here each *word* token already has a measured ``[start, end]``
+    window, so only the sub-word split is estimated, and real inter-word pauses
+    become genuine gaps (the avatar's mouth closes between words).
+
+    Returns ``None`` when the tokens carry no usable phonemes/timing, so the
+    caller can fall back to the heuristic path. ``cursor_s`` offsets timestamps
+    that are relative to the current chunk onto the absolute clip timeline.
+
+    NOTE: Kokoro only assigns these timestamps on its English G2P path
+    (``lang_code in 'ab'``). The Hindi/Indic EspeakG2P path yields tokens without
+    ``start_ts``/``end_ts``, so this returns ``None`` for Hindi and the heuristic
+    runs. The model's raw ``pred_dur`` is still exposed on the Result for every
+    language — that is the seam for a real per-phoneme Hindi timeline.
+    """
+    if not tokens:
+        return None
+    out: list[dict] = []
+    used = False
+    for tok in tokens:
+        ph = getattr(tok, "phonemes", None)
+        if not ph:
+            continue                                  # punctuation / whitespace token
+        ts = getattr(tok, "start_ts", None)
+        te = getattr(tok, "end_ts", None)
+        if ts is None or te is None:
+            return None                               # spoken token, no timing -> fall back
+        ts, te = float(ts), float(te)
+        if te <= ts:
+            return None
+        out.extend(phoneme_timeline(ph, cursor_s + ts, te - ts))
+        used = True
+    return out if used else None
+
+
 class TTSAdapterBase:
     default_vram_mb: int = 700    # FastPitch + HiFiGAN ballpark
 
@@ -58,6 +159,15 @@ class TTSAdapterBase:
     def synthesize(self, text: str, lang: str = "hi") -> Audio:
         self.load()
         return self._synthesize(text, lang)
+
+    def synthesize_aligned(self, text: str, lang: str = "hi") -> tuple[Audio, list[dict] | None]:
+        """Synthesise + return a phoneme timeline for avatar lip-sync.
+
+        Default: no phoneme access → (audio, None); the avatar then drives the
+        jaw from audio amplitude. Engines with a G2P front end (Kokoro) override
+        this to return a real per-phoneme timeline.
+        """
+        return self.synthesize(text, lang), None
 
     #: Short utterance used by ``warm()``. Override per engine/language — the
     #: G2P front end is language-specific, so warming Hindi with English text

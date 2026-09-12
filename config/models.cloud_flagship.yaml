@@ -1,0 +1,28 @@
+# Flagship model overrides for SS_ENV=cloud_flagship (NVIDIA L4 24 GB).
+# Deep-merged over config/models.yaml by AppConfig.load — ONLY the stages we
+# upgrade appear here; every other stage inherits the edge registry unchanged.
+# The safety architecture (faithfulness gate, OCR-floor union, deterministic
+# interpret, no-diagnosis) is stage logic and is untouched: we swap model
+# quality, not the guarantees.
+
+llm:
+  # Edge runs Phi-3.5-mini 3.8B (fits 8 GB). The summary LLM was ~88% of pipeline
+  # latency AND the main faithfulness/structure lever, so the L4 spends its VRAM
+  # here: Qwen2.5-14B-Instruct (Apache-2.0 — commercial-clean), Q4_K_M via Ollama.
+  # Much stronger structured extraction; the faithfulness gate stays mandatory.
+  primary: {impl: ollama_llm, model: "qwen2.5:14b-instruct", runtime: ollama, quant: int4, device: cuda, vram_mb: 11000, instruct: true, json_mode: true}
+
+# image_tag: inherits the edge MobileNetV3 head (fast, ungated). MedGemma-4B
+# zero-shot generalises better on real clinical photos and both the adapter
+# (imagetag_medgemma) and a candidate spec already exist — but google/medgemma
+# is GATED on Hugging Face (license acceptance + token). To promote it once the
+# license is accepted, add here:
+#   image_tag:
+#     primary: {impl: imagetag_medgemma, model: "google/medgemma-4b-it", quant: int4, classes: [skin, eye, wound, oral], device: cuda, vram_mb: 3700}
+# It rarely fires on the lab-report path, so it is not on the flagship hot path.
+
+stt:
+  # Same weights as edge (Vaani Hindi fine-tune is already the 12/12 accuracy
+  # winner), but the general/non-Hindi path decodes in float16 on the L4 instead
+  # of int8 — a quality bump the bigger card can afford.
+  multilingual: {impl: faster-whisper, model_path: "models/weights/faster-whisper-large-v3", compute: float16, device: cuda, vram_mb: 3200}

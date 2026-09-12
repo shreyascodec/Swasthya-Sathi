@@ -1,4 +1,4 @@
-// Typed client for the Swasthya Sathi FastAPI backend.
+// Typed client for the Swasthya Sakhi FastAPI backend.
 
 export type StageStatus = "pending" | "running" | "done" | "flagged" | "error" | "skipped";
 
@@ -22,6 +22,19 @@ export interface Pause {
   kind: "flag" | "error" | "intake_qa";
   stage: string;
   detail: string;
+}
+
+export interface MaternalRisk {
+  tier: "high" | "moderate" | "low" | "unknown";
+  tier_label: string;
+  action: string;
+  reasons: string[];
+  red_flags: string[];
+  parameters: { name: string; value: string; status: string }[];
+  danger_signs: { question: string; answer: string; flag: boolean }[];
+  gestational_age: string | null;
+  reviewed: boolean;
+  source: string;
 }
 
 export interface Faithfulness {
@@ -62,6 +75,7 @@ export interface Snapshot {
     faithfulness: Faithfulness | null;
     recovered: string[];
     narrative_review: string[];
+    maternal_risk: MaternalRisk | null;
   };
 }
 

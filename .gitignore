@@ -57,3 +57,6 @@ bench/results/real_reports_*
 # Local working notes (session summaries, strategy) — keep out of the repo.
 summary.md
 
+# Hugging Face token (secret) — used to lift download rate limits. NEVER commit.
+config/hf_token.txt
+

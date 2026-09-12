@@ -1,10 +1,13 @@
-// Live intake Q&A — speak each question aloud, record the spoken answer from
-// the microphone, transcribe it through the pipeline STT. One question at a
-// time (a patient cannot answer five at once). Mirrors the Streamlit panel:
-// autoplay per question, re-record replaces, hashing/report gated until done.
+// Live intake Q&A — a 3D avatar speaks each question aloud (with lip-sync driven
+// by Stage [7] precomputed WAV + IPA alignment when available), then records the
+// spoken answer from the microphone and transcribes it through pipeline STT.
+// One question at a time. Hashing/report gated until done.
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { api, fileUrl, type Snapshot } from "./api";
+import { useEffect, useRef, useState } from "react";
+import { api, type Snapshot } from "./api";
+import { AvatarScene } from "./avatar/AvatarScene";
+import { AvatarBoundary } from "./avatar/AvatarBoundary";
+import { useAvatarTTS } from "./avatar/useAvatarTTS";
 
 export function LiveQA({
   snap,
@@ -22,18 +25,8 @@ export function LiveQA({
   const [micError, setMicError] = useState<string | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
-  const audioEl = useRef<HTMLAudioElement>(null);
 
-  // Question TTS clips: the voice stage names them "NN_question.wav"; lexical
-  // order of those paths matches question order.
-  const clips = useMemo(
-    () =>
-      c.audio_out
-        .filter((a: any) => (a.path || "").replace(/\\/g, "/").match(/question\.wav$/i))
-        .sort((a: any, b: any) => (a.path < b.path ? -1 : 1))
-        .map((a: any) => a.path as string),
-    [c.audio_out]
-  );
+  const { speak, speakClip, stop, speaking, amplitude, visemeRef, expressionRef, setExpression } = useAvatarTTS();
 
   const answers: Record<string, any> = {};
   c.answers.forEach((a) => (answers[a.question_id] = a));
@@ -42,23 +35,36 @@ export function LiveQA({
   const total = c.questions.length;
   const last = idx >= total - 1;
 
-  // Autoplay the question when it changes. Browsers may block autoplay if the
-  // last user gesture was long ago — the visible controls are the fallback.
+  function clipFor(questionId: string) {
+    return c.audio_out.find((cl: any) => cl.question_id === questionId && cl.path);
+  }
+
+  function speakQuestion(question: any) {
+    if (!question) return;
+    const clip = clipFor(question.id);
+    if (clip?.path) {
+      speakClip({ path: clip.path, alignment: clip.alignment ?? null, text: question.rendered_text });
+    } else if (question.rendered_text) {
+      speak(question.rendered_text, c.lang);
+    }
+  }
+
+  // Speak the current question when the index (or session) changes — NOT on
+  // every snapshot. c.questions/c.audio_out get fresh identities on each answer
+  // (server re-serializes ctx), which previously re-fired this effect and made
+  // the avatar re-ask the just-answered question until the patient hit Next.
+  // Q&A starts after Stage [7], so the precomputed clips are present on mount.
   useEffect(() => {
-    audioEl.current?.play().catch(() => {});
-  }, [idx]);
+    speakQuestion(c.questions[idx]);
+    return () => stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idx, snap.session_id]);
 
   async function startRec() {
     setMicError(null);
+    stop(); // don't record the avatar over the patient
+    setExpression("neutral");
     try {
-      // Clean the mic input — this is the real STT-accuracy lever (decode tuning
-      // made Vaani WORSE; input quality is what fails ordinary words in a clinic):
-      //  - echoCancellation: the kiosk speaks the question aloud; without this the
-      //    speaker bleeds into the recording and corrupts the answer.
-      //  - noiseSuppression: strips ambient clinic/kiosk noise.
-      //  - autoGainControl: normalizes volume for soft/loud speakers at varying
-      //    mic distance.
-      //  - 16 kHz mono: Whisper's native rate, so no lossy resample.
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -92,6 +98,7 @@ export function LiveQA({
   async function submit(blob: Blob) {
     if (!q) return;
     setBusy(true);
+    setExpression("thinking");
     try {
       const s = await api.answer(snap.session_id, q.id, blob, "answer.webm");
       onSnap(s);
@@ -99,11 +106,13 @@ export function LiveQA({
       setMicError(String(e));
     } finally {
       setBusy(false);
+      setExpression("neutral");
     }
   }
 
   if (!q) return null;
   const existing = answers[q.id];
+  const hasClip = Boolean(clipFor(q.id)?.path);
 
   return (
     <div className="card qa-card">
@@ -113,17 +122,29 @@ export function LiveQA({
       </div>
       <div className="qa-progress"><div style={{ width: `${(answeredCount / total) * 100}%` }} /></div>
 
+      <div className="qa-avatar" style={{ height: 300, borderRadius: 12, overflow: "hidden", margin: "12px 0" }}>
+        <AvatarBoundary>
+          <AvatarScene
+            speaking={speaking}
+            listening={recording}
+            amplitude={amplitude}
+            visemeRef={visemeRef}
+            expressionRef={expressionRef}
+          />
+        </AvatarBoundary>
+      </div>
+
       <div className={`qa-qmeta ${existing ? "answered" : ""}`}>
         {existing ? "✓ " : ""}Question {idx + 1} of {total}
+        {hasClip ? " · precomputed voice" : " · live TTS"}
       </div>
       <div className="qa-question">{q.rendered_text}</div>
 
-      {idx < clips.length ? (
-        <audio ref={audioEl} key={`${snap.session_id}-${idx}`} src={fileUrl(clips[idx])}
-          controls autoPlay controlsList="nodownload noplaybackrate" />
-      ) : (
-        <div className="cap">⚠ No audio clip for this question — text only.</div>
-      )}
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="btn-ghost" onClick={() => speakQuestion(q)} disabled={speaking}>
+          {speaking ? "🔊 Speaking…" : "🔊 Repeat question"}
+        </button>
+      </div>
 
       <div style={{ marginTop: 18 }}>
         {!recording ? (

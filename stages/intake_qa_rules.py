@@ -123,6 +123,12 @@ def evaluate(patterns: list[Pattern], facts: IntakeFacts,
 
         if ttype == "always":
             pass
+        elif ttype == "danger_sign":
+            # Antenatal danger-sign screen: always asked (like `always`), but
+            # NOT a generic filler — select() ranks these as grounded so they are
+            # never capped away. A "yes" is escalated to a red flag by
+            # stages/maternal_risk.py (pattern ids start with "danger_").
+            pass
         elif ttype == "lab_status":
             lab = _match_lab(facts, t.get("analytes", []), t.get("statuses", []))
             if not lab:
@@ -166,13 +172,48 @@ def _render_template(template: str, slots: dict) -> str:
         return template
 
 
+def looks_medical(facts: IntakeFacts) -> bool:
+    """Whether the extracted data looks like a lab/medical report at all.
+
+    True only if the document yielded at least one recognised lab value or a
+    named medication. A report date alone is NOT enough — any dated document
+    (an invoice, a software spec) has one. This is the signal that gates both
+    the pipeline halt (server) and question generation: a non-medical document
+    must never drive a spoken patient interview.
+    """
+    return bool(facts.labs or facts.present_analytes or facts.medications)
+
+
 def select(patterns: list[Pattern], facts: IntakeFacts, max_questions: int = 5,
-           stale_report_months: int = 6) -> list[SelectedQuestion]:
-    """Fire triggers, then take the top-N by priority (grounded questions first)."""
+           stale_report_months: int = 6, max_standard: int = 2) -> list[SelectedQuestion]:
+    """Fire triggers and pick questions, grounded (report-specific) ones first.
+
+    Strict guardrail: a document with no recognised clinical content gets ZERO
+    questions — the ``always`` standard-history patterns are fillers for a REAL
+    report, not licence to interrogate a patient about a non-medical document.
+
+    Grounded questions (bound to this report's flagged values / meds / gaps) are
+    always ranked ahead of the generic ``always`` fillers, and the fillers are
+    capped (``max_standard``) so they can't dominate — otherwise two different
+    reports whose grounded triggers differ would still tail into the same five
+    generic questions.
+    """
+    if not looks_medical(facts):
+        return []
+
     matched = evaluate(patterns, facts, stale_report_months)
-    matched.sort(key=lambda m: m[0].priority, reverse=True)
+    grounded = [m for m in matched if (m[0].trigger or {}).get("type") != "always"]
+    fillers = [m for m in matched if (m[0].trigger or {}).get("type") == "always"]
+    grounded.sort(key=lambda m: m[0].priority, reverse=True)
+    fillers.sort(key=lambda m: m[0].priority, reverse=True)
+
+    chosen = grounded[:max_questions]
+    room = max_questions - len(chosen)
+    if room > 0:
+        chosen += fillers[: min(room, max_standard)]
+
     out: list[SelectedQuestion] = []
-    for p, slots, slot_label in matched[:max_questions]:
+    for p, slots, slot_label in chosen:
         out.append(SelectedQuestion(
             pattern_id=p.id, category=p.category, slot=slot_label,
             text_en=_render_template(p.text_en, slots),

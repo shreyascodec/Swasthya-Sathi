@@ -105,6 +105,11 @@ class AudioClip(BaseModel):
     lang: str = "hi"
     kind: str = "tts"                # tts | recorded-answer
     duration_ms: int | None = None   # timing seam for future Wav2Lip attach
+    # Intake Q&A avatar: which question this clip speaks, plus IPA timeline for
+    # lip-sync so LiveQA can replay Stage [7] audio without a second TTS call.
+    question_id: str | None = None
+    utterance: str = "tts"           # summary | question | tts
+    alignment: list[dict] | None = None  # [{phoneme, start, end}, ...]
 
 
 class FinalReport(BaseModel):

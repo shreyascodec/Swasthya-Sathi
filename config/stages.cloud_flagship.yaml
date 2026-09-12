@@ -1,0 +1,30 @@
+# Flagship stage overrides for SS_ENV=cloud_flagship (deep-merged over stages.yaml).
+
+ocr:
+  # Edge trusts a PDF's embedded text layer to skip the OCR engine (fast on the
+  # kiosk). But a text-layer's reading order does not always reconstruct the
+  # analyte TABLE — on real report PDFs it yielded only header fields, so the
+  # summary saw zero lab values and the "not a lab report" guardrail then fired
+  # on a perfectly valid report. The L4 has ample OCR headroom, so the flagship
+  # rasterises every page and runs RapidOCR (the image path that reliably
+  # extracts the table), trading the shortcut for accuracy. The result cache
+  # still makes re-runs instant.
+  use_text_layer: false
+
+# --- Maternal & Child Health (mothers) mode -------------------------------------
+# Repoints the deterministic interpret + intake stages from generic lab reports to
+# ANTENATAL maternal risk. Values come from the ANC card / lab report exactly as
+# before (OCR -> faithfulness-gated summary), but interpretation uses maternal
+# thresholds and produces a RISK TIER, and the intake asks antenatal danger-sign
+# questions. Lab mode is unchanged on other profiles.
+interpret:
+  mode: maternal
+  reference_path: data/mch/maternal_thresholds.yaml
+  # A raised BP / severe anaemia / GDM-range sugar are the priority flags.
+  high_priority_statuses: [critical]
+
+intake_qa:
+  bank_path: data/question_bank/maternal_patterns.yaml
+  # Danger-sign screen (5) + up to a couple grounded follow-ups.
+  max_questions: 6
+

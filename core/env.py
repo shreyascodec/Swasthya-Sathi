@@ -18,7 +18,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field
 
-VALID_ENVS = ("local", "dev_4060", "cloud", "orin")
+VALID_ENVS = ("local", "dev_4060", "cloud", "cloud_flagship", "orin")
 DEFAULT_ENV = "dev_4060"
 ENV_VAR = "SS_ENV"
 
@@ -111,11 +111,32 @@ class AppConfig(BaseModel):
     def load(cls, env_name: str | None = None) -> "AppConfig":
         env = EnvProfile.load(env_name)
         config_dir = Path(__file__).resolve().parent.parent / "config"
-        return cls(
-            env=env,
-            models=cls._read_yaml(config_dir / "models.yaml"),
-            stages=cls._read_yaml(config_dir / "stages.yaml"),
-        )
+        models = cls._read_yaml(config_dir / "models.yaml")
+        stages = cls._read_yaml(config_dir / "stages.yaml")
+        # Per-env overrides: config/models.<env>.yaml and config/stages.<env>.yaml
+        # are deep-merged over the base registries. This keeps the edge
+        # (dev_4060/orin) config pristine while a bigger box (cloud_flagship)
+        # points a stage at a heavier model, or trades a speed shortcut for
+        # accuracy (e.g. real OCR over the PDF text-layer bypass) — still a config
+        # edit, never a code change. Absent file = no-op.
+        m_override = config_dir / f"models.{env.name}.yaml"
+        if m_override.exists():
+            models = cls._deep_merge(models, cls._read_yaml(m_override))
+        s_override = config_dir / f"stages.{env.name}.yaml"
+        if s_override.exists():
+            stages = cls._deep_merge(stages, cls._read_yaml(s_override))
+        return cls(env=env, models=models, stages=stages)
+
+    @staticmethod
+    def _deep_merge(base: dict, over: dict) -> dict:
+        """Recursively merge ``over`` into a copy of ``base`` (dicts only)."""
+        out = dict(base)
+        for key, val in (over or {}).items():
+            if isinstance(val, dict) and isinstance(out.get(key), dict):
+                out[key] = AppConfig._deep_merge(out[key], val)
+            else:
+                out[key] = val
+        return out
 
     @staticmethod
     def _read_yaml(path: Path) -> dict:

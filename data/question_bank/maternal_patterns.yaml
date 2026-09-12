@@ -1,0 +1,72 @@
+# Maternal (antenatal) intake question bank — Swasthya Sakhi MCH mode.
+#
+# Same shape/loader as data/question_bank/patterns.yaml. The stage may ONLY ask
+# patterns from here (off-bank is structurally impossible). Two kinds:
+#   - danger_sign : the universal antenatal danger-sign screen; ALWAYS asked and
+#                   ranked as grounded (never capped). A "yes" is escalated to a
+#                   red flag -> HIGH risk by stages/maternal_risk.py. Ids MUST
+#                   start with "danger_".
+#   - lab_status  : grounded follow-ups bound to a flagged value.
+#
+# ⚠️ PENDING CLINICIAN REVIEW. Danger signs follow MoHFW/WHO ANC guidance
+# (pre-eclampsia, APH, reduced fetal movement, sepsis, PROM).
+
+version: mch-maternal-poc-1
+patterns:
+  # --- antenatal danger-sign screen (always asked) -------------------------
+  - id: danger_headache_vision
+    category: danger_sign
+    priority: 95
+    trigger: {type: danger_sign}
+    text_en: "Do you have a severe headache, blurred vision, or spots before your eyes?"
+    text_hi: "क्या आपको तेज़ सिरदर्द, धुंधला दिखना, या आंखों के आगे धब्बे दिखते हैं?"
+
+  - id: danger_bleeding
+    category: danger_sign
+    priority: 94
+    trigger: {type: danger_sign}
+    text_en: "Do you have any vaginal bleeding?"
+    text_hi: "क्या आपको योनि से कोई रक्तस्राव हो रहा है?"
+
+  - id: danger_fetal_movement
+    category: danger_sign
+    priority: 93
+    trigger: {type: danger_sign}
+    text_en: "Have you noticed reduced or no movement of the baby?"
+    text_hi: "क्या आपने बच्चे की हलचल कम या बंद महसूस की है?"
+
+  - id: danger_swelling
+    category: danger_sign
+    priority: 92
+    trigger: {type: danger_sign}
+    text_en: "Do you have sudden or severe swelling of the face, hands, or feet?"
+    text_hi: "क्या आपके चेहरे, हाथ या पैरों में अचानक या बहुत ज़्यादा सूजन है?"
+
+  - id: danger_fever
+    category: danger_sign
+    priority: 90
+    trigger: {type: danger_sign}
+    text_en: "Do you have fever or chills?"
+    text_hi: "क्या आपको बुखार या ठंड लग रही है?"
+
+  # --- grounded follow-ups (bound to a flagged value) ----------------------
+  - id: cond_anemia
+    category: condition_follow_up
+    priority: 85
+    trigger: {type: lab_status, analytes: ["hemoglobin"], statuses: [low, critical]}
+    text_en: "Your haemoglobin is {value} {unit}, which is low. Do you often feel very tired, weak, or breathless?"
+    text_hi: "आपका हीमोग्लोबिन {value} {unit} है, जो कम है। क्या आप अक्सर बहुत थकान, कमज़ोरी या सांस फूलना महसूस करती हैं?"
+
+  - id: cond_high_sugar
+    category: condition_follow_up
+    priority: 84
+    trigger: {type: lab_status, analytes: ["blood sugar", "fasting blood sugar"], statuses: [high, critical]}
+    text_en: "Your blood sugar {value} {unit} is high. Are you being treated for diabetes in this pregnancy?"
+    text_hi: "आपका ब्लड शुगर {value} {unit} अधिक है। क्या इस गर्भावस्था में आपका मधुमेह का इलाज चल रहा है?"
+
+  - id: std_chief_complaint
+    category: standard_history
+    priority: 40
+    trigger: {type: always}
+    text_en: "Is there any other problem or concern you would like to tell the doctor about today?"
+    text_hi: "क्या कोई और समस्या या चिंता है जो आप आज डॉक्टर को बताना चाहेंगी?"

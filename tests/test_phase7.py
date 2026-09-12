@@ -67,8 +67,10 @@ def test_voice_speaks_questions_only(tmp_path) -> None:
     ctx = p.run_stage("voice", _ctx())
 
     assert len(ctx.audio_out) == 2               # 2 questions, summary NOT spoken
+    assert [c.question_id for c in ctx.audio_out] == ["p7test:q1", "p7test:q2"]
     for clip in ctx.audio_out:
         assert clip.kind == "tts" and clip.lang == "hi"
+        assert clip.utterance == "question"
         assert clip.duration_ms and clip.duration_ms > 0   # timing seam present
         assert Path(clip.path).exists()
         assert "summary" not in Path(clip.path).name       # variant invariant
@@ -172,6 +174,48 @@ def test_wav_tail_can_be_disabled() -> None:
     wav = TTSAdapterBase.pcm_to_wav(b"\x40\x00" * sr, sr, tail_ms=0)
     with wave.open(io.BytesIO(wav)) as w:
         assert w.getnframes() == sr
+
+
+# --- avatar lip-sync timeline (model-native phoneme timing) ------------------
+class _FakeToken:
+    """Stand-in for a misaki token carrying the duration predictor's timing."""
+
+    def __init__(self, phonemes, start_ts, end_ts):
+        self.phonemes = phonemes
+        self.start_ts = start_ts
+        self.end_ts = end_ts
+
+
+def test_token_timeline_uses_native_timestamps() -> None:
+    # Two words with measured windows [0.00,0.30] and [0.40,0.90]; the [0.30,0.40]
+    # inter-word pause must become a genuine gap (mouth closes between words).
+    from models.tts_base import token_timeline
+
+    tl = token_timeline([_FakeToken("hə", 0.0, 0.30), _FakeToken("loʊ", 0.40, 0.90)], cursor_s=1.0)
+    assert tl, "expected a timeline built from native timestamps"
+    assert abs(tl[0]["start"] - 1.0) < 1e-6            # onset = cursor + first token start
+    assert all(e["end"] > e["start"] for e in tl)
+    first = [e for e in tl if e["start"] < 1.35]       # first word stays inside its window
+    assert max(e["end"] for e in first) <= 1.30 + 1e-6
+    assert any(e["start"] >= 1.40 - 1e-6 for e in tl)  # second word begins after the pause
+    assert max(e["end"] for e in tl) <= 1.90 + 1e-6
+
+
+def test_token_timeline_skips_punctuation_tokens() -> None:
+    from models.tts_base import token_timeline
+
+    tl = token_timeline([_FakeToken("haɪ", 0.0, 0.3), _FakeToken("", None, None)])
+    assert tl and all(e["phoneme"] for e in tl)
+
+
+def test_token_timeline_falls_back_when_timing_missing() -> None:
+    # A spoken token without usable timing -> None so the caller uses the heuristic.
+    from models.tts_base import token_timeline
+
+    assert token_timeline([_FakeToken("haɪ", None, None)]) is None
+    assert token_timeline([_FakeToken("haɪ", 0.3, 0.3)]) is None   # zero-width window
+    assert token_timeline([]) is None
+    assert token_timeline(None) is None
 
 
 def test_piper_english_produces_real_audio(tmp_path) -> None:

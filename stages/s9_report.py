@@ -40,6 +40,20 @@ def assemble_content(ctx: SessionContext) -> dict:
     summary = ctx.summary.content if ctx.summary else {}
     answer_by_q = {a.question_id: a.transcript for a in ctx.answers}
 
+    # MCH mode: recompute the maternal risk tier now that the danger-sign answers
+    # are in (interpret only had the vitals). A reported danger sign can escalate
+    # the tier to HIGH. Presence of the key = maternal mode was active.
+    maternal_risk = summary.get("maternal_risk")
+    if maternal_risk is not None:
+        from stages.maternal_risk import assess_maternal_risk
+        findings = summary.get("lab_findings", [])
+        maternal_risk = assess_maternal_risk(
+            findings, ctx.interpretations,
+            questions=ctx.questions, answers=ctx.answers,
+        )
+        if ctx.summary is not None:
+            ctx.summary.content["maternal_risk"] = maternal_risk
+
     return {
         "patient_language": ctx.lang,
         "facility": summary.get("facility"),
@@ -51,6 +65,8 @@ def assemble_content(ctx: SessionContext) -> dict:
         "interpretations": [f.model_dump() for f in ctx.interpretations],
         "medications": summary.get("medications", []),
         "narrative_en": summary.get("narrative_en", ""),
+        # MCH maternal risk tier + reasons + recommended action (None in lab mode).
+        "maternal_risk": maternal_risk,
         # Clinical photos only (report scans were never tagged — see stage [3]).
         "image_tags": [t.model_dump() for t in ctx.image_tags],
         # Intake Q&A, each question paired with its transcribed answer (if any).
