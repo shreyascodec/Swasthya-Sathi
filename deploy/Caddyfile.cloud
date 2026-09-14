@@ -1,0 +1,6 @@
+# Live kiosk TLS (Caddy + Let's Encrypt). Copy to /etc/caddy/Caddyfile on the VM.
+# Public URL: https://swasthyasakhi.brenin.co  (A → 8.231.125.201)
+# Fallback:   https://8-231-125-201.nip.io
+swasthyasakhi.brenin.co, 8-231-125-201.nip.io {
+	reverse_proxy 127.0.0.1:8000
+}

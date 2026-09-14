@@ -1,7 +1,7 @@
 # Swasthya Sakhi → Maternal & Child Health (Mothers) — Pivot Log
 
 **Date:** 2026-09-12
-**Goal:** Repoint the deployed Swasthya Sakhi kiosk (https://swasthyasathi.brenin.co, GCP
+**Goal:** Repoint the deployed Swasthya Sakhi kiosk (https://swasthyasakhi.brenin.co, GCP
 `swasthya-sakhi`, `SS_ENV=cloud_flagship`) from the generic lab-report flow to
 **Maternal (antenatal) Health Risk Prediction for remote areas**, currently focused on
 mothers. Child/newborn is a later phase.

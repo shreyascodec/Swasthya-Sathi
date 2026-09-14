@@ -20,6 +20,9 @@ import asyncio
 import json
 import logging
 import mimetypes
+import os
+import urllib.error
+import urllib.request
 import re
 import shutil
 import threading
@@ -639,6 +642,172 @@ def avatar_smoke_clip(body: AvatarTTSBody) -> dict:
         "sample_rate": audio.sample_rate,
         "voice": logical,
     }
+
+
+# --- Brenin/Tavus avatar proxy -----------------------------------------------
+# The kiosk drives a live talking-head avatar, but the Brenin API key must NEVER
+# reach the browser. These endpoints hold the key server-side (env) and expose
+# only what the client needs: a short-lived session_token to render the SDK, a
+# say() proxy to speak our fixed pipeline lines (echo mode — bypasses the
+# avatar's own LLM, preserving the no-ad-lib safety invariant), and end() to stop
+# per-second billing. Config via env: SS_BRENIN_API_KEY, SS_BRENIN_AVATAR_ID,
+# SS_BRENIN_BASE (default https://uat.brenin.co).
+_BRENIN_BASE = os.environ.get("SS_BRENIN_BASE", "https://uat.brenin.co").rstrip("/")
+_BRENIN_KEY = os.environ.get("SS_BRENIN_API_KEY", "")
+_BRENIN_AVATAR = os.environ.get("SS_BRENIN_AVATAR_ID", "")
+
+
+def _brenin_call(method: str, path: str, payload: dict | None = None) -> dict:
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(
+        _BRENIN_BASE + path, data=data, method=method,
+        headers={"Content-Type": "application/json", "x-api-key": _BRENIN_KEY},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")[:300]
+        raise HTTPException(502, f"avatar upstream {e.code}: {body}")
+    except (urllib.error.URLError, OSError) as e:
+        raise HTTPException(502, f"avatar upstream unreachable: {e}")
+
+
+def _brenin_session_fields(d: dict) -> tuple[str | None, str | None, str | None]:
+    """Normalize Brenin create-conversation ids (snake_case or camelCase / nested)."""
+    sess = d.get("session") if isinstance(d.get("session"), dict) else {}
+    av = d.get("avatar") if isinstance(d.get("avatar"), dict) else {}
+    sid = (
+        d.get("session_id")
+        or d.get("conversation_id")
+        or d.get("conversationId")
+        or sess.get("session_id")
+        or sess.get("id")
+    )
+    token = (
+        d.get("session_token")
+        or d.get("sessionToken")
+        or sess.get("sessionToken")
+        or sess.get("session_token")
+    )
+    avatar = d.get("avatar_id") or d.get("avatarId") or av.get("avatar_id") or av.get("id") or av.get("avatarId")
+    return (str(sid) if sid else None, str(token) if token else None, str(avatar) if avatar else None)
+
+
+# Maternal-health identity, so ANY autonomous speech (should be none in echo mode)
+# stays on-domain — never the avatar's stock sales persona.
+_MCH_SYSTEM_PROMPT = (
+    "You are Swasthya Sakhi, a warm, respectful maternal and child health companion "
+    "for pregnant women at a rural health kiosk in India. You ONLY read aloud the exact "
+    "lines you are given. You never sell anything, never diagnose, never start a topic, "
+    "and never mention any product or business. If addressed directly, reply briefly and "
+    "only about maternal health and using this kiosk."
+)
+_MCH_CONTEXT = (
+    "Maternal & child health risk-screening kiosk. Echo mode: speak only the provided lines."
+)
+
+
+class AvatarSessionBody(BaseModel):
+    greeting: str | None = None
+    system_prompt: str | None = None
+    languages: list[str] | None = None
+    language: str | None = None
+    conversational_context: str | None = None
+
+
+@app.post("/api/avatar/session")
+def avatar_session(body: AvatarSessionBody) -> dict:
+    """Create a live avatar session. Returns ONLY the session_token/id — never the key."""
+    if not _BRENIN_KEY or not _BRENIN_AVATAR:
+        raise HTTPException(503, "avatar not configured (set SS_BRENIN_API_KEY / SS_BRENIN_AVATAR_ID)")
+    # Sticky kiosk language: speak ONLY the selected language until the patient
+    # toggles. Do not default in both hi+en — Phoenix then often greets in English.
+    # greeting MUST be sent even when empty: omitting the field makes Brenin play
+    # the PAL connect greeting (English "Hello! How can I assist you today?").
+    # `if body.greeting:` would drop "" because empty string is falsy.
+    primary = (body.language or "hi").strip().lower()
+    if primary not in {"hi", "en"}:
+        primary = "hi"
+    langs = list(body.languages) if body.languages else [primary]
+    langs = [x.strip().lower() for x in langs if x and x.strip()]
+    if primary not in langs:
+        langs = [primary] + langs
+    greeting = "" if body.greeting is None else body.greeting
+    payload: dict = {
+        "avatar_id": _BRENIN_AVATAR,
+        "conversation_name": "Swasthya Sakhi",
+        "background": "transparent",
+        "system_prompt": body.system_prompt or _MCH_SYSTEM_PROMPT,
+        "conversational_context": body.conversational_context or _MCH_CONTEXT,
+        "languages": langs,
+        "language": primary,
+        "greeting": greeting,
+        "properties": {"max_call_duration": 900},
+    }
+    d = _brenin_call("POST", "/api-b-v1/brenin/conversations", payload).get("data", {})
+    sid, token, avatar = _brenin_session_fields(d if isinstance(d, dict) else {})
+    if not sid or not token:
+        raise HTTPException(502, "avatar session missing id/token")
+    return {
+        "session_id": sid,
+        "session_token": token,
+        "avatar_id": avatar or _BRENIN_AVATAR,
+        "base": _BRENIN_BASE,
+    }
+
+
+@app.get("/api/avatar/info")
+def avatar_info() -> dict:
+    """Avatar thumbnail (for the Welcome poster) — lets the kiosk show the face
+    without a billable live session while idle."""
+    if not _BRENIN_KEY or not _BRENIN_AVATAR:
+        return {"thumbnail": None}
+    try:
+        d = _brenin_call("GET", f"/api-b-v1/brenin/avatars/{_BRENIN_AVATAR}").get("data", {})
+    except HTTPException:
+        return {"thumbnail": None}
+    return {"thumbnail": d.get("thumbnail_url") or d.get("thumbnailUrl"), "name": d.get("name")}
+
+
+class AvatarSayBody(BaseModel):
+    session_id: str
+    text: str
+    session_token: str | None = None
+
+
+@app.post("/api/avatar/say")
+def avatar_say(body: AvatarSayBody) -> dict:
+    """Echo a fixed line. Prefer the SDK WebRTC path on the kiosk; this is fallback.
+
+    Brenin's SDK posts `/conversations/{session_token}/say` with `mode=echo`.
+    Create-conversation also returns `session_id` — try both.
+    """
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "text is empty")
+    payload = {"text": text, "mode": "echo"}
+    keys = [k for k in (body.session_id, body.session_token) if k]
+    last_err: HTTPException | None = None
+    for key in keys:
+        try:
+            return _brenin_call("POST", f"/api-b-v1/brenin/conversations/{key}/say", payload)
+        except HTTPException as e:
+            last_err = e
+            continue
+    if last_err:
+        raise last_err
+    raise HTTPException(400, "session_id is empty")
+
+
+class AvatarEndBody(BaseModel):
+    session_id: str
+
+
+@app.post("/api/avatar/end")
+def avatar_end(body: AvatarEndBody) -> dict:
+    """End the session to stop per-second billing."""
+    return _brenin_call("POST", f"/api-b-v1/brenin/conversations/{body.session_id}/end", {})
 
 
 @app.post("/api/session")
