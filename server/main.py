@@ -45,7 +45,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import models  # noqa: F401  (registers model adapters)
-from core.context import SessionContext, UploadedFile
+from core.context import IntakeAnswer, SessionContext, UploadedFile
 from core.model_manager import VRAMBudgetError
 from core.pipeline import Pipeline, new_session
 from server.config import ServerConfig
@@ -81,6 +81,10 @@ async def lifespan(app: FastAPI):
         APP_VERSION, PIPELINE.config.env.name, PIPELINE.config.env.device, DATA_DIR,
     )
     _sweep_orphan_dirs()  # crash recovery: drop stale session dirs from a prior run
+    # Crash recovery for billing: no in-memory avatar session survives a restart,
+    # so end any Brenin conversation left active by a prior process (the overnight
+    # wallet drain). Off-thread so a slow upstream never blocks startup.
+    asyncio.create_task(asyncio.to_thread(_reap_avatar_sessions, True))
     if CFG.warmup:
         start_warmup_thread(PIPELINE, PIPELINE_LOCK, READINESS)
     else:
@@ -223,6 +227,10 @@ async def _reaper_loop() -> None:
             _reap_idle_sessions()
         except Exception:  # noqa: BLE001 — a reaper crash must not kill the server
             log.exception("session reaper error")
+        try:
+            await asyncio.to_thread(_reap_avatar_sessions)
+        except Exception:  # noqa: BLE001 — avatar reaper must not kill the server
+            log.exception("avatar reaper error")
 
 
 def _sweep_orphan_dirs() -> None:
@@ -673,6 +681,112 @@ def _brenin_call(method: str, path: str, payload: dict | None = None) -> dict:
         raise HTTPException(502, f"avatar upstream unreachable: {e}")
 
 
+# --- avatar session reaper: stop runaway per-second billing ------------------
+# The kiosk ends its session on pagehide / the closing auto-reset, and Brenin
+# caps a call at max_call_duration (900s). But a crashed tab (no pagehide fires)
+# or a server restart can leave a conversation billing for hours — the field-
+# observed 10.6h / wallet-drain. We track the conversation we started and reap it
+# if it outlives a hard ceiling; and because no in-memory session survives a
+# restart (single kiosk, single worker), any active conversation seen while we
+# are tracking nothing is an orphan we can safely end (mirrors the PHI dir sweep).
+_MAX_AVATAR_SESSION_S = int(os.environ.get("SS_AVATAR_MAX_SESSION_S", "1200"))
+_avatar_lock = threading.Lock()
+_avatar_active: dict[str, float] = {}  # session_id -> started (epoch)
+
+
+def _track_avatar_session(sid: str) -> None:
+    with _avatar_lock:
+        _avatar_active[sid] = time.time()
+
+
+def _untrack_avatar_session(sid: str) -> None:
+    with _avatar_lock:
+        _avatar_active.pop(sid, None)
+
+
+def _brenin_raw(method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
+    """Like _brenin_call but never raises — returns (status, parsed). Used by the
+    reaper/startup sweep, where a network hiccup must not crash the loop."""
+    if not _BRENIN_KEY:
+        return 0, {}
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(
+        _BRENIN_BASE + path, data=data, method=method,
+        headers={"Content-Type": "application/json", "x-api-key": _BRENIN_KEY, "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = resp.read().decode("utf-8", "replace")
+            return resp.status, (json.loads(raw) if raw else {})
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", "replace")[:300]
+        try:
+            return e.code, json.loads(body)
+        except Exception:  # noqa: BLE001
+            return e.code, {"raw": body}
+    except (urllib.error.URLError, OSError):
+        return 0, {}
+
+
+def _conversation_ids(item: dict) -> list[str]:
+    """The end-able ids on a conversations-list row (snake/camel/nested), de-duped."""
+    out: list[str] = []
+    for k in ("conversationId", "session_id", "conversation_id", "id"):
+        v = item.get(k)
+        if isinstance(v, str) and v:
+            out.append(v)
+    sess = item.get("session")
+    if isinstance(sess, dict):
+        for k in ("session_id", "id", "conversationId"):
+            v = sess.get(k)
+            if isinstance(v, str) and v:
+                out.append(v)
+    seen: set[str] = set()
+    return [v for v in out if not (v in seen or seen.add(v))]
+
+
+def _end_conversation(cid: str) -> bool:
+    status, _ = _brenin_raw("POST", f"/api-b-v1/brenin/conversations/{cid}/end", {})
+    return status in (200, 201, 204)
+
+
+def _reap_avatar_sessions(startup: bool = False) -> int:
+    """End runaway/orphaned Brenin conversations so they stop billing. Blocking
+    (urllib) — call via asyncio.to_thread from the async loop. Returns count ended."""
+    if not _BRENIN_KEY:
+        return 0
+    now = time.time()
+    ended = 0
+
+    # 1) Age out the session we started that never ended (e.g. crashed tab).
+    with _avatar_lock:
+        stale = [s for s, t0 in _avatar_active.items() if now - t0 > _MAX_AVATAR_SESSION_S]
+    for sid in stale:
+        if _end_conversation(sid):
+            ended += 1
+        _untrack_avatar_session(sid)
+
+    # 2) Orphan sweep. Ending an active conversation is only safe when we believe
+    #    no visit is live (tracking empty) — or at startup, when no in-memory
+    #    session survived and every active conversation is by definition orphaned.
+    with _avatar_lock:
+        tracking_empty = not _avatar_active
+    if startup or tracking_empty:
+        _, body = _brenin_raw("GET", "/api-b-v1/brenin/conversations")
+        rows = body.get("data") if isinstance(body, dict) else None
+        if isinstance(rows, list):
+            for item in rows:
+                if not isinstance(item, dict) or str(item.get("status") or "").lower() != "active":
+                    continue
+                for cid in _conversation_ids(item):
+                    if _end_conversation(cid):
+                        ended += 1
+                        break
+    if ended:
+        log.info("avatar reaper ended %d conversation(s)%s", ended, " (startup sweep)" if startup else "")
+    return ended
+
+
 def _brenin_session_fields(d: dict) -> tuple[str | None, str | None, str | None]:
     """Normalize Brenin create-conversation ids (snake_case or camelCase / nested)."""
     sess = d.get("session") if isinstance(d.get("session"), dict) else {}
@@ -699,9 +813,9 @@ def _brenin_session_fields(d: dict) -> tuple[str | None, str | None, str | None]
 _MCH_SYSTEM_PROMPT = (
     "You are Swasthya Sakhi, a warm, respectful maternal and child health companion "
     "for pregnant women at a rural health kiosk in India. You ONLY read aloud the exact "
-    "lines you are given. You never sell anything, never diagnose, never start a topic, "
-    "and never mention any product or business. If addressed directly, reply briefly and "
-    "only about maternal health and using this kiosk."
+    "lines sent via echo/say(). You never listen to the room, never ask your own "
+    "questions, never continue a conversation, never diagnose, never sell anything, "
+    "and never mention any product or business. Stay silent unless given a line to speak."
 )
 _MCH_CONTEXT = (
     "Maternal & child health risk-screening kiosk. Echo mode: speak only the provided lines."
@@ -737,7 +851,6 @@ def avatar_session(body: AvatarSessionBody) -> dict:
     payload: dict = {
         "avatar_id": _BRENIN_AVATAR,
         "conversation_name": "Swasthya Sakhi",
-        "background": "transparent",
         "system_prompt": body.system_prompt or _MCH_SYSTEM_PROMPT,
         "conversational_context": body.conversational_context or _MCH_CONTEXT,
         "languages": langs,
@@ -749,10 +862,13 @@ def avatar_session(body: AvatarSessionBody) -> dict:
     sid, token, avatar = _brenin_session_fields(d if isinstance(d, dict) else {})
     if not sid or not token:
         raise HTTPException(502, "avatar session missing id/token")
+    _track_avatar_session(sid)  # reaper backstop against a never-ended (crashed) session
     return {
         "session_id": sid,
         "session_token": token,
-        "avatar_id": avatar or _BRENIN_AVATAR,
+        # Always the replica id from env — nested `avatar.id` is the PAL persona
+        # (`pe…`), which the SDK then mounts in place of `r7…` Phoenix.
+        "avatar_id": _BRENIN_AVATAR or avatar,
         "base": _BRENIN_BASE,
     }
 
@@ -807,6 +923,7 @@ class AvatarEndBody(BaseModel):
 @app.post("/api/avatar/end")
 def avatar_end(body: AvatarEndBody) -> dict:
     """End the session to stop per-second billing."""
+    _untrack_avatar_session(body.session_id)
     return _brenin_call("POST", f"/api-b-v1/brenin/conversations/{body.session_id}/end", {})
 
 
@@ -944,12 +1061,27 @@ def resume(sid: str, body: ResumeBody) -> dict:
     return _snapshot(sid)
 
 
-@app.post("/api/session/{sid}/answer")
-async def answer(sid: str, question_id: str = Form(...), file: UploadFile = File(...)) -> dict:
-    """Transcribe a recorded intake answer and attach it (STT via the pipeline).
+def _attach_text_answer(ctx: SessionContext, question_id: str, text: str) -> None:
+    """Attach a browser-side transcript without waiting on GPU STT."""
+    ctx.answers = [a for a in ctx.answers if a.question_id != question_id]
+    ctx.answers.append(IntakeAnswer(question_id=question_id, transcript=text, lang=ctx.lang))
+    if ctx.summary is not None:
+        prior = ctx.summary.content.get("intake_answers", [])
+        ctx.summary.content["intake_answers"] = [
+            a for a in prior if a.get("question_id") != question_id
+        ] + [{"question_id": question_id, "transcript": text, "lang": ctx.lang}]
+    ctx.log("stage.intake_qa.answer", detail=f"q={question_id} chars={len(text)} src=browser")
 
-    capture_answer replaces on re-record, so answering a question twice keeps
-    only the latest take — same as the Streamlit path.
+
+@app.post("/api/session/{sid}/answer")
+async def answer(
+    sid: str,
+    question_id: str = Form(...),
+    file: UploadFile = File(...),
+    transcript: str = Form(""),
+) -> dict:
+    """Attach an intake answer. Browser transcript skips GPU STT so the kiosk
+    can show words immediately; audio is still stored for the record.
     """
     s = _sess(sid)
     if not any(q.id == question_id for q in s.ctx.questions):
@@ -961,6 +1093,10 @@ async def answer(sid: str, question_id: str = Form(...), file: UploadFile = File
     ext = Path(file.filename or "answer.webm").suffix or ".webm"
     dest = audio_dir / f"{idx:02d}_answer{ext}"
     dest.write_bytes(await file.read())
+    text = (transcript or "").strip()
+    if text:
+        _attach_text_answer(s.ctx, question_id, text)
+        return _snapshot(sid)
     with PIPELINE_LOCK:  # capture_answer runs STT — serialize against stage runs/warmup
         stage.capture_answer(s.ctx, question_id, str(dest))
     return _snapshot(sid)
