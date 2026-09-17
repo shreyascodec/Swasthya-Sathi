@@ -292,6 +292,59 @@ def draw_rx(
 # so Stage 5 flags and Stage 6 questions fire.
 # ---------------------------------------------------------------------------
 
+def build_maternal() -> list[tuple[str, Path, Path]]:
+    """One antenatal (ANC) case for Swasthya Sakhi MCH mode: a pregnant woman with
+    anaemia + gestational diabetes — the most common real ANC finding pair. Values
+    sit against data/mch/maternal_thresholds.yaml so the maternal risk tier lands
+    'moderate' and the grounded anaemia + high-sugar follow-up questions fire, on
+    top of the always-asked antenatal danger-sign screen. Fictional patient."""
+    written: list[tuple[str, Path, Path]] = []
+    p, g = draw_lab(
+        stem="05_lakshmi_anc_lab",
+        lab_name="Matrika Diagnostics & Women's Lab",
+        lab_tag="Antenatal Profile  ·  Haematology  ·  Biochemistry",
+        address="7, Station Road, Varanasi 221002  ·  Uttar Pradesh",
+        phone="Phone: 0542-2201 640  ·  matrika-labs.example",
+        nabl="NABL-MC-38115",
+        patient="Lakshmi Yadav",
+        age_sex="26 Y / F  ·  28 wk POG",
+        pid="SS-DEMO-005",
+        referred="Dr. Sunita Menon, OBG",
+        collected="16/09/2026  08:20",
+        received="16/09/2026  08:45",
+        reported="16/09/2026  14:30",
+        sample="EDTA Blood + Serum",
+        lab_no="MAT-260916-0518",
+        sections=[
+            ("HAEMATOLOGY — COMPLETE BLOOD COUNT", [
+                {"name": "Hemoglobin", "value": "9.2", "unit": "g/dL", "ref": "11.0-14.0", "flag": "L"},
+                {"name": "WBC", "value": "9800", "unit": "/cumm", "ref": "4000-11000", "flag": ""},
+                {"name": "Platelets", "value": "2.1", "unit": "lakhs/cumm", "ref": "1.5-4.1", "flag": ""},
+                {"name": "MCV", "value": "74", "unit": "fL", "ref": "80-100", "flag": "L"},
+            ]),
+            # Analyte names carry NO embedded numbers (e.g. not "OGTT 2-hour (75g)"):
+            # the narrative repeats the label, and the faithfulness gate flags any
+            # number in it that is not an extracted lab value ('75', '2' → ungrounded).
+            ("GLUCOSE — ORAL GLUCOSE TOLERANCE TEST", [
+                {"name": "Fasting Blood Sugar", "value": "104", "unit": "mg/dL", "ref": "70-92", "flag": "H"},
+                {"name": "Post-prandial Blood Sugar", "value": "158", "unit": "mg/dL", "ref": "less than 140", "flag": "H"},
+            ]),
+            ("ANTENATAL SCREEN", [
+                {"name": "Blood Group & Rh", "value": "B Positive", "unit": "", "ref": "", "flag": ""},
+                {"name": "TSH", "value": "3.1", "unit": "mIU/L", "ref": "0.4-4.0", "flag": ""},
+                {"name": "HIV I & II", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "HBsAg", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "VDRL", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "Urine Albumin", "value": "Nil", "unit": "", "ref": "Nil", "flag": ""},
+            ]),
+        ],
+        pathologist="Dr. Anita Deshpande",
+        path_qual="MD (Pathology)  ·  Consultant Pathologist",
+    )
+    written += [("lab", p, g)]
+    return written
+
+
 def build() -> list[tuple[str, Path, Path]]:
     written: list[tuple[str, Path, Path]] = []
 
