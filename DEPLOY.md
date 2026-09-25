@@ -68,6 +68,8 @@ is separate — chosen by `SS_ENV` (`dev_4060` | `cloud` | `orin`, backed by
 | `SS_SESSION_TTL_SECONDS` | `1800` | idle session + data-dir reap age |
 | `SS_MAX_SESSIONS` | `64` | in-memory session cap (LRU) |
 | `SS_PERSIST_REPORTS` | `1` | write `report_v<n>.json` on seal |
+| `SS_AVATAR_IDLE_S` | `120` | end live avatar this long after last kiosk heartbeat (inert until the heartbeat client ships) |
+| `SS_AVATAR_MAX_SESSION_S` | `600` | hard cap on live-avatar call length (crash backstop); lower to `240–300` for an aggressive stopgap |
 
 ## 3. Warmup & readiness
 
@@ -116,6 +118,12 @@ powershell -ExecutionPolicy Bypass -File deploy\install_windows_startup.ps1
 - **Sealed report on disk:** with `SS_PERSIST_REPORTS=1`, each sealed report is written
   to `_session_data/<id>/report_v<n>.json` (content + SHA-256 + timestamp) as an audit
   artifact — until that session is reaped.
+- **Live-avatar billing:** the Brenin call bills per second. A reaper thread ends it on
+  two triggers — no kiosk heartbeat for `SS_AVATAR_IDLE_S` (walked-away/abandoned visit,
+  once the heartbeat client is deployed) and a hard `SS_AVATAR_MAX_SESSION_S` ceiling
+  (crashed-tab backstop) — and sweeps orphaned conversations at startup. The kiosk drop-in
+  in `frontend/kiosk/avatar_lifecycle.js` sends the heartbeats plus a `pagehide` end-beacon;
+  see that file's header for wiring.
 
 ## 6. Dependencies on the box
 

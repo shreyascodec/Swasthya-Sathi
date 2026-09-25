@@ -685,23 +685,57 @@ def _brenin_call(method: str, path: str, payload: dict | None = None) -> dict:
 # The kiosk ends its session on pagehide / the closing auto-reset, and Brenin
 # caps a call at max_call_duration (900s). But a crashed tab (no pagehide fires)
 # or a server restart can leave a conversation billing for hours — the field-
-# observed 10.6h / wallet-drain. We track the conversation we started and reap it
-# if it outlives a hard ceiling; and because no in-memory session survives a
-# restart (single kiosk, single worker), any active conversation seen while we
-# are tracking nothing is an orphan we can safely end (mirrors the PHI dir sweep).
-_MAX_AVATAR_SESSION_S = int(os.environ.get("SS_AVATAR_MAX_SESSION_S", "1200"))
+# observed 10.6h / wallet-drain. Two backstops:
+#   * IDLE ceiling — end a call this long after the LAST kiosk heartbeat. This is
+#     the primary control against a walked-away/abandoned visit. It is only
+#     enforced once a session has beaten at least once, so an older kiosk build
+#     that never pings /api/avatar/heartbeat is unaffected and falls back to the
+#     max-age ceiling below (safe rollout: deploy the server ahead of the client).
+#   * MAX-AGE ceiling — a hard cap on total call length regardless of activity;
+#     the crash/restart backstop. Lowered from 1200s: with the idle ceiling doing
+#     the real work, set SS_AVATAR_MAX_SESSION_S tighter (e.g. 240–300) on the VM
+#     if you want an aggressive stopgap before the heartbeat client ships.
+# Because no in-memory session survives a restart (single kiosk, single worker),
+# any active conversation seen while we are tracking nothing is an orphan we can
+# safely end (mirrors the PHI dir sweep).
+_MAX_AVATAR_SESSION_S = int(os.environ.get("SS_AVATAR_MAX_SESSION_S", "600"))
+_AVATAR_IDLE_S = int(os.environ.get("SS_AVATAR_IDLE_S", "120"))
 _avatar_lock = threading.Lock()
-_avatar_active: dict[str, float] = {}  # session_id -> started (epoch)
+# session_id -> {"started": epoch, "token": session_token|None, "last_beat": epoch|None}
+_avatar_active: dict[str, dict] = {}
 
 
-def _track_avatar_session(sid: str) -> None:
+def _track_avatar_session(sid: str, token: str | None = None) -> None:
     with _avatar_lock:
-        _avatar_active[sid] = time.time()
+        _avatar_active[sid] = {"started": time.time(), "token": token, "last_beat": None}
 
 
-def _untrack_avatar_session(sid: str) -> None:
+def _untrack_avatar_session(key: str) -> None:
+    """Drop a tracked session by its session_id OR its session_token, so every
+    end path (our /api/avatar/end by id, or a client that only knows the token)
+    clears tracking and can never strand a stale entry that blocks the sweep."""
     with _avatar_lock:
-        _avatar_active.pop(sid, None)
+        _avatar_active.pop(key, None)
+        for k, rec in list(_avatar_active.items()):
+            if rec.get("token") and rec["token"] == key:
+                _avatar_active.pop(k, None)
+
+
+def _beat_avatar_session(key: str) -> bool:
+    """Mark a live avatar session active (heartbeat). `key` may be the session_id
+    or the session_token. Returns True if a tracked session matched."""
+    now = time.time()
+    with _avatar_lock:
+        rec = _avatar_active.get(key)
+        if rec is None:
+            for v in _avatar_active.values():
+                if v.get("token") and v["token"] == key:
+                    rec = v
+                    break
+        if rec is None:
+            return False
+        rec["last_beat"] = now
+        return True
 
 
 def _brenin_raw(method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
@@ -750,6 +784,17 @@ def _end_conversation(cid: str) -> bool:
     return status in (200, 201, 204)
 
 
+def _end_tracked(sid: str, rec: dict) -> bool:
+    """End a session we started, trying BOTH the id it was created with and its
+    session_token. Brenin's /end may key on either; ending by only one silently
+    fails and leaves the call billing, so we attempt each distinct id."""
+    ended = _end_conversation(sid)
+    token = rec.get("token")
+    if token and token != sid:
+        ended = _end_conversation(token) or ended
+    return ended
+
+
 def _reap_avatar_sessions(startup: bool = False) -> int:
     """End runaway/orphaned Brenin conversations so they stop billing. Blocking
     (urllib) — call via asyncio.to_thread from the async loop. Returns count ended."""
@@ -758,11 +803,22 @@ def _reap_avatar_sessions(startup: bool = False) -> int:
     now = time.time()
     ended = 0
 
-    # 1) Age out the session we started that never ended (e.g. crashed tab).
+    # 1) Reap sessions we started. Two triggers:
+    #    - IDLE: no heartbeat for _AVATAR_IDLE_S (a walked-away/abandoned visit).
+    #      Only counts once the session has beaten at least once, so a kiosk build
+    #      that never sends heartbeats is governed solely by the max-age ceiling.
+    #    - AGED: alive longer than _MAX_AVATAR_SESSION_S (crashed-tab backstop).
     with _avatar_lock:
-        stale = [s for s, t0 in _avatar_active.items() if now - t0 > _MAX_AVATAR_SESSION_S]
-    for sid in stale:
-        if _end_conversation(sid):
+        snapshot = list(_avatar_active.items())
+    stale: list[tuple[str, dict]] = []
+    for sid, rec in snapshot:
+        beat = rec.get("last_beat")
+        idle = beat is not None and now - beat > _AVATAR_IDLE_S
+        aged = now - rec.get("started", now) > _MAX_AVATAR_SESSION_S
+        if idle or aged:
+            stale.append((sid, rec))
+    for sid, rec in stale:
+        if _end_tracked(sid, rec):
             ended += 1
         _untrack_avatar_session(sid)
 
@@ -862,7 +918,10 @@ def avatar_session(body: AvatarSessionBody) -> dict:
     sid, token, avatar = _brenin_session_fields(d if isinstance(d, dict) else {})
     if not sid or not token:
         raise HTTPException(502, "avatar session missing id/token")
-    _track_avatar_session(sid)  # reaper backstop against a never-ended (crashed) session
+    # Track BOTH ids so the reaper can end by whichever /end keys on, and so a
+    # heartbeat carrying either id keeps the call alive. Backstop against a
+    # never-ended (crashed) session.
+    _track_avatar_session(sid, token)
     return {
         "session_id": sid,
         "session_token": token,
@@ -904,6 +963,8 @@ def avatar_say(body: AvatarSayBody) -> dict:
         raise HTTPException(400, "text is empty")
     payload = {"text": text, "mode": "echo"}
     keys = [k for k in (body.session_id, body.session_token) if k]
+    for key in keys:
+        _beat_avatar_session(key)  # a spoken line is activity — defer the idle reap
     last_err: HTTPException | None = None
     for key in keys:
         try:
@@ -916,15 +977,42 @@ def avatar_say(body: AvatarSayBody) -> dict:
     raise HTTPException(400, "session_id is empty")
 
 
+class AvatarHeartbeatBody(BaseModel):
+    session_id: str
+    session_token: str | None = None
+
+
+@app.post("/api/avatar/heartbeat")
+def avatar_heartbeat(body: AvatarHeartbeatBody) -> dict:
+    """Keep-alive ping from the live kiosk. The client posts this every ~20s while
+    a call is on screen (and on each speaking event); when the pings stop — patient
+    walked away, tab hidden/crashed — the reaper ends the call after
+    SS_AVATAR_IDLE_S so it stops billing without waiting for the max-age ceiling.
+    No-op (ok:false) for an unknown/already-ended session."""
+    hit = _beat_avatar_session(body.session_id)
+    if body.session_token:
+        hit = _beat_avatar_session(body.session_token) or hit
+    return {"ok": bool(hit)}
+
+
 class AvatarEndBody(BaseModel):
     session_id: str
+    session_token: str | None = None
 
 
 @app.post("/api/avatar/end")
 def avatar_end(body: AvatarEndBody) -> dict:
-    """End the session to stop per-second billing."""
+    """End the session to stop per-second billing. Ends by both ids (Brenin may
+    key /end on either) and clears tracking so the reaper won't chase it. Never
+    raises on a single-id miss — this is also the target of a pagehide beacon,
+    where a thrown error would be lost anyway."""
     _untrack_avatar_session(body.session_id)
-    return _brenin_call("POST", f"/api-b-v1/brenin/conversations/{body.session_id}/end", {})
+    if body.session_token:
+        _untrack_avatar_session(body.session_token)
+    ended = _end_conversation(body.session_id)
+    if body.session_token and body.session_token != body.session_id:
+        ended = _end_conversation(body.session_token) or ended
+    return {"status": bool(ended)}
 
 
 @app.post("/api/session")
