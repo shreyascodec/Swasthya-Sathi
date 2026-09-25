@@ -31,5 +31,9 @@ intake_qa:
   # reports ask different questions. max_questions bounds the general (non-
   # antenatal) bank only; kept for completeness.
   max_questions: 6
-  max_grounded: 3
+  # Up to this many report-specific follow-ups (specific patterns first, then the
+  # generic catch-all for any other flagged value). 4 lets a multi-finding report
+  # (e.g. pre-eclampsia: high BP + proteinuria + low platelets + anaemia) surface
+  # all its key findings without over-questioning a routine visit.
+  max_grounded: 4
 

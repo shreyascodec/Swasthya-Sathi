@@ -88,6 +88,46 @@ patterns:
     text_en: "Your platelet count {value} {unit} is low. Do you have any unusual bruising, bleeding gums, or nosebleeds?"
     text_hi: "आपकी प्लेटलेट संख्या {value} {unit} कम है। क्या आपको असामान्य नील पड़ना, मसूड़ों से खून आना, या नाक से खून आना होता है?"
 
+  - id: cond_thyroid
+    category: condition_follow_up
+    priority: 83
+    trigger: {type: lab_status, analytes: ["tsh", "thyroid stimulating hormone"], statuses: [high, critical]}
+    text_en: "Your thyroid test (TSH) is {value} {unit}, which is high. Are you taking any thyroid medicine, or has a doctor told you about a thyroid problem?"
+    text_hi: "आपकी थायरॉइड जांच (TSH) {value} {unit} है, जो अधिक है। क्या आप थायरॉइड की कोई दवा ले रही हैं, या डॉक्टर ने आपको थायरॉइड की समस्या के बारे में बताया है?"
+
+  # Generic grounded catch-all (lowest priority) — guarantees EVERY clinically
+  # tracked abnormal value gets a relevant follow-up even without a hand-written
+  # pattern (e.g. low ferritin, high pulse, raised HbA1c, fever). One question per
+  # flagged analyte; select() drops any analyte a specific pattern above already
+  # covered. The analyte allowlist mirrors data/mch/maternal_thresholds.yaml, so
+  # non-actionable indices (MCV, RDW, WBC) are deliberately NOT asked.
+  - id: cond_flagged_generic
+    category: condition_follow_up
+    priority: 50
+    trigger:
+      type: lab_flag_any
+      statuses: [low, high, critical]
+      analytes:
+        - hemoglobin
+        - haemoglobin
+        - blood pressure
+        - systolic bp
+        - diastolic bp
+        - fasting blood sugar
+        - blood sugar
+        - post-prandial blood sugar
+        - urine protein
+        - urine albumin
+        - platelets
+        - platelet count
+        - ferritin
+        - tsh
+        - hba1c
+        - temperature
+        - pulse
+    text_en: "Your report shows {analyte} at {value} {unit}, which is outside the normal range. Has a doctor spoken to you about this, or advised any treatment for it?"
+    text_hi: "आपकी रिपोर्ट में {analyte} {value} {unit} है, जो सामान्य सीमा से बाहर है। क्या डॉक्टर ने आपसे इस बारे में बात की है, या इसके लिए कोई इलाज बताया है?"
+
   - id: std_chief_complaint
     category: standard_history
     priority: 40

@@ -135,6 +135,23 @@ def evaluate(patterns: list[Pattern], facts: IntakeFacts,
                 continue
             slots = _slots_from_lab(lab)
             slot_label = lab.analyte
+        elif ttype == "lab_flag_any":
+            # Generic grounded catch-all: emit ONE question per flagged lab so no
+            # clinically-tracked abnormal value in the report goes unasked, even
+            # when it has no hand-written pattern. Scoped to an explicit analyte
+            # allowlist (the clinically-askable set — excludes indices like MCV /
+            # RDW / WBC that aren't patient-actionable) and to the given statuses.
+            # select() drops any analyte already covered by a specific pattern, so
+            # the well-worded question always wins over this fallback.
+            allow = {_norm(a) for a in t.get("analytes", [])}
+            stset = {_norm(s) for s in t.get("statuses", [])}
+            for lab in facts.labs:
+                if allow and _norm(lab.analyte) not in allow:
+                    continue
+                if _norm(lab.status) not in stset:
+                    continue
+                matched.append((p, _slots_from_lab(lab), lab.analyte))
+            continue
         elif ttype == "missing_test":
             need = _norm(t.get("need", ""))
             if need in facts.present_analytes:
@@ -213,11 +230,42 @@ def select(patterns: list[Pattern], facts: IntakeFacts, max_questions: int = 5,
 
     matched = evaluate(patterns, facts, stale_report_months)
     danger = [m for m in matched if (m[0].trigger or {}).get("type") == "danger_sign"]
-    grounded = [m for m in matched
-                if (m[0].trigger or {}).get("type") not in ("always", "danger_sign")]
     fillers = [m for m in matched if (m[0].trigger or {}).get("type") == "always"]
+
+    # Grounded = report-specific. Split into SPECIFIC (hand-written per-condition
+    # patterns) and GENERIC (the lab_flag_any catch-all, one match per flagged
+    # lab). A specific pattern always wins over the generic fallback for the same
+    # analyte, and the generic ones fill in every OTHER flagged value so nothing
+    # relevant in the report goes unasked.
+    def _gtype(m):
+        return (m[0].trigger or {}).get("type")
+
+    specific = [m for m in matched if _gtype(m) not in ("always", "danger_sign", "lab_flag_any")]
+    generic = [m for m in matched if _gtype(m) == "lab_flag_any"]
+    specific.sort(key=lambda m: m[0].priority, reverse=True)
+
+    # An analyte is "covered" (so the generic fallback skips it) if a specific
+    # pattern matched it OR lists it among its trigger analytes — this stops a
+    # second, redundant generic question for a sibling analyte (e.g. the sugar
+    # pattern owns fasting + post-prandial + random sugar as one condition).
+    covered: set[str] = set()
+    for m in specific:
+        if m[2]:
+            covered.add(_norm(m[2]))
+        if (m[0].trigger or {}).get("type") == "lab_status":
+            for a in (m[0].trigger or {}).get("analytes", []):
+                covered.add(_norm(a))
+    deduped: list = []
+    seen: set[str] = set()
+    for m in generic:
+        key = _norm(m[2] or "")
+        if not key or key in covered or key in seen:
+            continue
+        seen.add(key)
+        deduped.append(m)
+    deduped.sort(key=lambda m: m[0].priority, reverse=True)
+    grounded = specific + deduped  # specific (well-worded) first, then generic fallback
     danger.sort(key=lambda m: m[0].priority, reverse=True)
-    grounded.sort(key=lambda m: m[0].priority, reverse=True)
     fillers.sort(key=lambda m: m[0].priority, reverse=True)
 
     if danger:

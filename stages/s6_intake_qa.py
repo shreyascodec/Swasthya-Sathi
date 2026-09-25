@@ -19,6 +19,8 @@ review of the bank; optional SLM re-phrasing behind the same guardrail.
 
 from __future__ import annotations
 
+import re
+
 from core.context import IntakeAnswer, IntakeQuestion, SessionContext
 from core.stage import Stage
 from stages.intake_qa_rules import (
@@ -99,13 +101,25 @@ class IntakeQAStage(Stage):
                           stale_report_months=stale_months, max_grounded=max_grounded)
 
         questions: list[IntakeQuestion] = []
+        used_ids: set[str] = set()
         for q in selected:
             # Guardrail: never surface a question whose pattern isn't in the bank.
             if not validate_from_bank(q.pattern_id, self._bank):
                 continue
             rendered = q.text_hi if ctx.lang == "hi" else q.text_en
+            # A generic pattern (cond_flagged_generic) can appear more than once —
+            # one per flagged analyte — so the id must be unique per question, not
+            # just per pattern, or two answers would collide on the same key.
+            base = f"{ctx.session_id}:{q.pattern_id}"
+            slug = re.sub(r"[^a-z0-9]+", "-", (q.slot or "").lower()).strip("-")
+            qid = f"{base}:{slug}" if slug else base
+            n = 2
+            while qid in used_ids:
+                qid = f"{base}:{slug}-{n}" if slug else f"{base}:{n}"
+                n += 1
+            used_ids.add(qid)
             questions.append(IntakeQuestion(
-                id=f"{ctx.session_id}:{q.pattern_id}",
+                id=qid,
                 pattern_id=q.pattern_id,
                 slot=q.slot,
                 rendered_text=rendered,

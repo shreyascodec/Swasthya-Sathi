@@ -100,3 +100,60 @@ def test_danger_signs_do_not_crowd_out_grounded():
     # one grounded follow-up. Now a flagged report must surface its follow-ups.
     _, grounded = _pick(MODERATE)
     assert len(grounded) >= 2
+
+
+# --- robustness: generic catch-all so no flagged value goes unasked ----------
+def test_generic_catchall_covers_unpatterned_flags():
+    # TSH has a specific pattern; ferritin + temperature do not — the generic
+    # catch-all must still surface a relevant question for those.
+    _, grounded = _pick([
+        ("TSH", "12.6", "mIU/L", "high"),
+        ("Ferritin", "9", "ng/mL", "critical"),
+        ("Temperature", "38.2", "°C", "high"),
+    ])
+    assert "cond_thyroid" in grounded            # specific wins for TSH
+    assert grounded.count("cond_flagged_generic") == 2  # ferritin + temperature
+
+
+def test_sibling_sugars_not_double_asked():
+    # cond_high_sugar owns fasting + post-prandial; the generic fallback must not
+    # add a second sugar question for the sibling analyte.
+    _, grounded = _pick([
+        ("Fasting Blood Sugar", "99", "mg/dL", "high"),
+        ("Post-prandial Blood Sugar", "154", "mg/dL", "high"),
+    ])
+    assert grounded == ["cond_high_sugar"]
+
+
+def test_non_actionable_indices_are_not_asked():
+    # MCV / RDW / WBC are flagged but not patient-actionable — they are excluded
+    # from the catch-all allowlist, so a report with only those asks no follow-up.
+    _, grounded = _pick([
+        ("MCV", "68", "fL", "low"),
+        ("RDW", "17.8", "%", "high"),
+        ("WBC", "12000", "/cumm", "high"),
+    ])
+    assert "cond_flagged_generic" not in grounded
+
+
+def test_stage_generic_question_ids_are_unique():
+    # Two generic questions share pattern_id 'cond_flagged_generic'; the stage
+    # must still give each a UNIQUE question id (else answers collide).
+    from core.context import LabFlag, OCRResult, SessionContext, SummaryDoc
+    from core.pipeline import Pipeline
+
+    pipeline = Pipeline(env_name="cloud_flagship")
+    ctx = SessionContext(session_id="mchtest", lang="en")
+    ctx.ocr = OCRResult(fields=[])
+    ctx.summary = SummaryDoc(version=1, content={"lab_findings": [], "report_dates": []})
+    ctx.interpretations = [
+        LabFlag(analyte="Ferritin", value="9", unit="ng/mL", status="critical"),
+        LabFlag(analyte="TSH", value="12.6", unit="mIU/L", status="high"),
+        LabFlag(analyte="Pulse", value="118", unit="bpm", status="high"),
+    ]
+    ctx = pipeline.run_stage("intake_qa", ctx)
+    ids = [q.id for q in ctx.questions]
+    assert len(ids) == len(set(ids)), f"duplicate question ids: {ids}"
+    generic = [q for q in ctx.questions if q.pattern_id == "cond_flagged_generic"]
+    assert len(generic) >= 2
+    assert len({q.id for q in generic}) == len(generic)
