@@ -26,7 +26,11 @@
  *     sessionId,                // session_id from POST /api/avatar/session
  *     sessionToken,             // session_token from the same response
  *     apiOrigin: '',            // same-origin kiosk → '' ; else server origin
- *     onIdleEnd: () => kiosk.reset(),   // optional: your reset-to-IDLE handler
+ *     idle: false,              // disable the LOCAL idle watchdog when the app
+ *                               //   already runs its own (e.g. InactivityWatchdog);
+ *                               //   heartbeat + exit beacon still run. Omit (or
+ *                               //   idle:true) to use it, with idleMs / onIdleEnd.
+ *     onIdleEnd: () => kiosk.reset(),   // optional: reset-to-IDLE, only if idle is on
  *   });
  *   // Call detach() when YOU end the call (CLOSING auto-reset) so the guards for
  *   // this session stop. Then create the next session fresh.
@@ -51,6 +55,11 @@ export function attachAvatarLifecycle(opts) {
     var apiOrigin = (opts.apiOrigin != null ? opts.apiOrigin : DEFAULTS.apiOrigin).replace(/\/$/, '');
     var heartbeatMs = opts.heartbeatMs || DEFAULTS.heartbeatMs;
     var idleMs = opts.idleMs || DEFAULTS.idleMs;
+    // Local idle-end watchdog. Set `idle: false` to turn it off entirely — do this
+    // when the app already runs its own inactivity watchdog, so the two don't fight
+    // over the reset. Heartbeat + exit beacon are unaffected. `idleMs: Infinity`
+    // still works as an equivalent, but `idle: false` is the explicit, clear form.
+    var idleEnabled = opts.idle !== false && idleMs !== Infinity;
     var onIdleEnd = typeof opts.onIdleEnd === 'function' ? opts.onIdleEnd : function () {};
     var log = opts.log === false ? function () {} : function () {
       try { console.info.apply(console, ['[avatar-lifecycle]'].concat([].slice.call(arguments))); } catch (_) {}
@@ -168,7 +177,11 @@ export function attachAvatarLifecycle(opts) {
     // --- start the timers -----------------------------------------------------
     sendHeartbeat(); // one immediately so the server knows this build heartbeats
     heartbeatTimer = setInterval(sendHeartbeat, heartbeatMs);
-    idleTimer = setInterval(checkIdle, Math.min(idleMs, 15000));
+    if (idleEnabled) {
+      idleTimer = setInterval(checkIdle, Math.min(idleMs, 15000));
+    } else {
+      log('local idle watchdog disabled (idle:false) — heartbeat + exit beacon only');
+    }
 
     // --- detach: caller ended the call normally; drop this session's guards ---
     return function detach(alsoEnd) {
