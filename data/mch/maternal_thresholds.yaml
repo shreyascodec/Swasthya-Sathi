@@ -46,7 +46,7 @@ analytes:
     critical: {high: 126}              # overt diabetes range
 
   - canonical: Blood Sugar
-    aliases: [blood sugar, ogtt, 2 hour glucose, 2h glucose, post prandial, postprandial, ppbs, random blood sugar, rbs, glucose, plasma glucose]
+    aliases: [blood sugar, ogtt, 2 hour glucose, 2h glucose, post prandial, postprandial, post-prandial, post prandial blood sugar, post-prandial blood sugar, postprandial blood sugar, pp blood sugar, ppbs, random blood sugar, rbs, glucose, plasma glucose]
     unit: mg/dL
     direction: high_only
     default: {high: 140}               # DIPSI 2h 75g >=140 -> GDM
@@ -70,3 +70,23 @@ analytes:
     unit: lakhs/cumm
     default: {low: 1.5, high: 4.1}
     critical: {low: 1.0}
+
+  - canonical: Ferritin
+    aliases: [ferritin, serum ferritin]
+    unit: ng/mL
+    default: {low: 15, high: 150}
+    critical: {low: 10}
+
+  - canonical: TSH
+    aliases: [tsh, thyroid stimulating hormone]
+    unit: mIU/L
+    direction: high_only
+    default: {high: 4.0}
+    critical: {high: 10.0}
+
+  - canonical: HbA1c
+    aliases: [hba1c, glycated hemoglobin, glycosylated haemoglobin]
+    unit: "%"
+    direction: high_only
+    default: {high: 6.5}
+    critical: {high: 8.0}

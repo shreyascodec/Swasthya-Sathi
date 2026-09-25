@@ -68,18 +68,33 @@ class IntakeQAStage(Stage):
 
         # Maternal-risk parameters (computed at stage 5) carry statuses the numeric
         # interpreter can't produce — a combined Blood Pressure ("150/100") and a
-        # Urine Protein grade ("++"). Feed those in so grounded antenatal follow-ups
-        # (high BP / pre-eclampsia, proteinuria) can fire. Skip analytes already
-        # present from the interpretations to avoid duplicate facts.
+        # Urine Protein grade ("++"), which interpret leaves 'unknown'. Merge them:
+        # for a NEW analyte, add it; for one already present as an 'unknown'
+        # interpretation, let the definite maternal-risk status SUPERSEDE it, so a
+        # high-BP / proteinuria follow-up can fire (it otherwise stays unknown and
+        # never matches a lab_status trigger).
+        by_key: dict[str, LabFact] = {}
+        for lf in labs:
+            by_key.setdefault(lf.analyte.strip().lower(), lf)
         mr = content.get("maternal_risk") or {}
         for prm in mr.get("parameters", []):
             name = str(prm.get("name", "")).strip()
-            key = name.lower()
-            if not name or key in present:
+            if not name:
                 continue
-            labs.append(LabFact(analyte=name, value=str(prm.get("value", "")),
-                                unit=None, status=str(prm.get("status", "unknown"))))
-            present.add(key)
+            key = name.lower()
+            status = str(prm.get("status", "unknown"))
+            value = str(prm.get("value", ""))
+            existing = by_key.get(key)
+            if existing is not None:
+                if status != "unknown" and (existing.status or "unknown") in ("unknown", ""):
+                    existing.status = status
+                    if value:
+                        existing.value = value
+            else:
+                lf = LabFact(analyte=name, value=value, unit=None, status=status)
+                labs.append(lf)
+                by_key[key] = lf
+                present.add(key)
 
         dates = list(content.get("report_dates", []))
         meds = [m.get("name", "") for m in content.get("medications", []) if m.get("name")]
