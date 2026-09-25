@@ -60,9 +60,33 @@ patterns:
   - id: cond_high_sugar
     category: condition_follow_up
     priority: 84
-    trigger: {type: lab_status, analytes: ["blood sugar", "fasting blood sugar"], statuses: [high, critical]}
+    trigger: {type: lab_status, analytes: ["blood sugar", "fasting blood sugar", "post-prandial blood sugar"], statuses: [high, critical]}
     text_en: "Your blood sugar {value} {unit} is high. Are you being treated for diabetes in this pregnancy?"
     text_hi: "आपका ब्लड शुगर {value} {unit} अधिक है। क्या इस गर्भावस्था में आपका मधुमेह का इलाज चल रहा है?"
+
+  # BP / urine-protein statuses come from stages/maternal_risk.py parameters
+  # (a combined "150/100" or a "++" grade the numeric interpreter can't read),
+  # surfaced into the intake facts by stages/s6_intake_qa.py.
+  - id: cond_high_bp
+    category: condition_follow_up
+    priority: 88
+    trigger: {type: lab_status, analytes: ["blood pressure"], statuses: [high, critical]}
+    text_en: "Your blood pressure {value} is high. Have you been told about high blood pressure in this pregnancy, or are you taking any medicine for it?"
+    text_hi: "आपका रक्तचाप {value} अधिक है। क्या इस गर्भावस्था में आपको उच्च रक्तचाप के बारे में बताया गया है, या आप इसके लिए कोई दवा ले रही हैं?"
+
+  - id: cond_proteinuria
+    category: condition_follow_up
+    priority: 87
+    trigger: {type: lab_status, analytes: ["urine protein", "urine albumin"], statuses: [high, critical]}
+    text_en: "Your urine test shows protein ({value}). Has your urine been checked before in this pregnancy, and were you told anything about it?"
+    text_hi: "आपके मूत्र जांच में प्रोटीन ({value}) मिला है। क्या इस गर्भावस्था में पहले आपका मूत्र जांचा गया था, और आपको इसके बारे में कुछ बताया गया था?"
+
+  - id: cond_low_platelets
+    category: condition_follow_up
+    priority: 86
+    trigger: {type: lab_status, analytes: ["platelets", "platelet count"], statuses: [low, critical]}
+    text_en: "Your platelet count {value} {unit} is low. Do you have any unusual bruising, bleeding gums, or nosebleeds?"
+    text_hi: "आपकी प्लेटलेट संख्या {value} {unit} कम है। क्या आपको असामान्य नील पड़ना, मसूड़ों से खून आना, या नाक से खून आना होता है?"
 
   - id: std_chief_complaint
     category: standard_history

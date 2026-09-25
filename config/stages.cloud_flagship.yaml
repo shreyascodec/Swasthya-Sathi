@@ -25,6 +25,11 @@ interpret:
 
 intake_qa:
   bank_path: data/question_bank/maternal_patterns.yaml
-  # Danger-sign screen (5) + up to a couple grounded follow-ups.
+  # The danger-sign screen (5) is always asked in full and is NOT counted here.
+  # max_grounded caps the report-specific follow-ups (anaemia, high BP,
+  # proteinuria, low platelets, high sugar) that ride on top, so different
+  # reports ask different questions. max_questions bounds the general (non-
+  # antenatal) bank only; kept for completeness.
   max_questions: 6
+  max_grounded: 3
 

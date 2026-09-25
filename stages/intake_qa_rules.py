@@ -185,7 +185,8 @@ def looks_medical(facts: IntakeFacts) -> bool:
 
 
 def select(patterns: list[Pattern], facts: IntakeFacts, max_questions: int = 5,
-           stale_report_months: int = 6, max_standard: int = 2) -> list[SelectedQuestion]:
+           stale_report_months: int = 6, max_standard: int = 2,
+           max_grounded: int = 3) -> list[SelectedQuestion]:
     """Fire triggers and pick questions, grounded (report-specific) ones first.
 
     Strict guardrail: a document with no recognised clinical content gets ZERO
@@ -197,20 +198,37 @@ def select(patterns: list[Pattern], facts: IntakeFacts, max_questions: int = 5,
     capped (``max_standard``) so they can't dominate — otherwise two different
     reports whose grounded triggers differ would still tail into the same five
     generic questions.
+
+    Antenatal mode (any ``danger_sign`` pattern fires): the danger-sign screen is
+    a MANDATORY, reserved bucket. It is always asked in full AND kept out of the
+    grounded budget — otherwise the five high-priority danger signs consume every
+    slot and the report-specific follow-ups (anaemia, high BP, proteinuria, …)
+    never get asked, so every report yields the identical question set. Here we
+    ask: all danger signs + up to ``max_grounded`` report-specific follow-ups +
+    a generic filler ONLY when nothing grounded fired (so a normal report still
+    gets the "anything else?" prompt without padding a flagged one).
     """
     if not looks_medical(facts):
         return []
 
     matched = evaluate(patterns, facts, stale_report_months)
-    grounded = [m for m in matched if (m[0].trigger or {}).get("type") != "always"]
+    danger = [m for m in matched if (m[0].trigger or {}).get("type") == "danger_sign"]
+    grounded = [m for m in matched
+                if (m[0].trigger or {}).get("type") not in ("always", "danger_sign")]
     fillers = [m for m in matched if (m[0].trigger or {}).get("type") == "always"]
+    danger.sort(key=lambda m: m[0].priority, reverse=True)
     grounded.sort(key=lambda m: m[0].priority, reverse=True)
     fillers.sort(key=lambda m: m[0].priority, reverse=True)
 
-    chosen = grounded[:max_questions]
-    room = max_questions - len(chosen)
-    if room > 0:
-        chosen += fillers[: min(room, max_standard)]
+    if danger:
+        chosen = list(danger) + grounded[:max_grounded]
+        if not grounded:
+            chosen += fillers[:max_standard]
+    else:
+        chosen = grounded[:max_questions]
+        room = max_questions - len(chosen)
+        if room > 0:
+            chosen += fillers[: min(room, max_standard)]
 
     out: list[SelectedQuestion] = []
     for p, slots, slot_label in chosen:

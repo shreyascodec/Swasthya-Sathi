@@ -345,6 +345,169 @@ def build_maternal() -> list[tuple[str, Path, Path]]:
     return written
 
 
+def build_maternal_showcase() -> list[tuple[str, Path, Path]]:
+    """Three antenatal (ANC) lab reports for a Swasthya Sakhi MCH demo — one per
+    risk tier, so a walkthrough shows the maternal risk engine land LOW, then
+    MODERATE, then HIGH. Values sit against data/mch/maternal_thresholds.yaml and
+    stages/maternal_risk.py so each report deterministically produces its tier:
+
+      06  Priya Devi   — LOW      : all vitals/labs normal → routine ANC follow-up.
+      07  Fatima Bano  — MODERATE : moderate anaemia (Hb 9.6) + GDM (raised OGTT)
+                                     + low ferritin (R002 + R009), no red flag.
+      08  Kavita Kumari— HIGH     : BP 158/104 with urine albumin ++ → Pre-eclampsia
+                                     (R005 red flag) + low platelets → immediate referral.
+
+    All three are fictional. Distinct labs, cities, dates and pathologists so a
+    reviewer can tell them apart at a glance."""
+    written: list[tuple[str, Path, Path]] = []
+
+    # --- 06 · LOW RISK — reassuring routine ANC --------------------------------
+    p, g = draw_lab(
+        stem="06_priya_devi_anc_lab",
+        lab_name="Aanchal Maternity & Diagnostics",
+        lab_tag="Antenatal Profile  ·  Haematology  ·  Biochemistry",
+        address="12, Kutchery Road, Ajmer 305001  ·  Rajasthan",
+        phone="Phone: 0145-2620 118  ·  aanchal-diag.example",
+        nabl="NABL-MC-40277",
+        patient="Priya Devi",
+        age_sex="24 Y / F  ·  24 wk POG",
+        pid="SS-DEMO-006",
+        referred="Dr. Ritu Agarwal, OBG",
+        collected="19/09/2026  08:05",
+        received="19/09/2026  08:30",
+        reported="19/09/2026  13:15",
+        sample="EDTA Blood + Serum + Urine",
+        lab_no="AMD-260919-0442",
+        sections=[
+            ("VITALS AT COLLECTION", [
+                {"name": "Blood Pressure", "value": "116/74", "unit": "mmHg", "ref": "less than 140/90", "flag": ""},
+                {"name": "Pulse", "value": "82", "unit": "bpm", "ref": "60-100", "flag": ""},
+                {"name": "Temperature", "value": "36.8", "unit": "°C", "ref": "less than 37.5", "flag": ""},
+            ]),
+            ("HAEMATOLOGY — COMPLETE BLOOD COUNT", [
+                {"name": "Hemoglobin", "value": "11.8", "unit": "g/dL", "ref": "11.0-14.0", "flag": ""},
+                {"name": "WBC", "value": "8200", "unit": "/cumm", "ref": "4000-11000", "flag": ""},
+                {"name": "Platelets", "value": "2.7", "unit": "lakhs/cumm", "ref": "1.5-4.1", "flag": ""},
+                {"name": "MCV", "value": "86", "unit": "fL", "ref": "80-100", "flag": ""},
+            ]),
+            ("GLUCOSE — ORAL GLUCOSE TOLERANCE TEST", [
+                {"name": "Fasting Blood Sugar", "value": "82", "unit": "mg/dL", "ref": "70-92", "flag": ""},
+                {"name": "Post-prandial Blood Sugar", "value": "118", "unit": "mg/dL", "ref": "less than 140", "flag": ""},
+            ]),
+            ("ANTENATAL SCREEN", [
+                {"name": "Blood Group & Rh", "value": "O Positive", "unit": "", "ref": "", "flag": ""},
+                {"name": "TSH", "value": "2.1", "unit": "mIU/L", "ref": "0.4-4.0", "flag": ""},
+                {"name": "HIV I & II", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "HBsAg", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "VDRL", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "Urine Albumin", "value": "Nil", "unit": "", "ref": "Nil", "flag": ""},
+            ]),
+        ],
+        pathologist="Dr. Kavita Sharma",
+        path_qual="MD (Pathology)  ·  Consultant Pathologist",
+    )
+    written += [("lab", p, g)]
+
+    # --- 07 · MODERATE RISK — anaemia + gestational diabetes -------------------
+    p, g = draw_lab(
+        stem="07_fatima_bano_anc_lab",
+        lab_name="Noor Diagnostic Centre",
+        lab_tag="Women's Health  ·  Haematology  ·  Endocrine Assay",
+        address="8-2-120, Banjara Hills Road No.3, Hyderabad 500034  ·  Telangana",
+        phone="Phone: 040-2335 7788  ·  noor-diagnostics.example",
+        nabl="NABL-MC-52190",
+        patient="Fatima Bano",
+        age_sex="31 Y / F  ·  30 wk POG",
+        pid="SS-DEMO-007",
+        referred="Dr. Sabeen Fatima, OBG",
+        collected="20/09/2026  07:50",
+        received="20/09/2026  08:15",
+        reported="20/09/2026  15:40",
+        sample="EDTA Blood + Fluoride Plasma + Serum",
+        lab_no="NDC-260920-0913",
+        sections=[
+            ("VITALS AT COLLECTION", [
+                {"name": "Blood Pressure", "value": "126/80", "unit": "mmHg", "ref": "less than 140/90", "flag": ""},
+                {"name": "Pulse", "value": "88", "unit": "bpm", "ref": "60-100", "flag": ""},
+            ]),
+            ("HAEMATOLOGY — COMPLETE BLOOD COUNT", [
+                {"name": "Hemoglobin", "value": "9.6", "unit": "g/dL", "ref": "11.0-14.0", "flag": "L"},
+                {"name": "WBC", "value": "9100", "unit": "/cumm", "ref": "4000-11000", "flag": ""},
+                {"name": "Platelets", "value": "2.0", "unit": "lakhs/cumm", "ref": "1.5-4.1", "flag": ""},
+                {"name": "MCV", "value": "76", "unit": "fL", "ref": "80-100", "flag": "L"},
+            ]),
+            ("GLUCOSE — ORAL GLUCOSE TOLERANCE TEST", [
+                {"name": "Fasting Blood Sugar", "value": "99", "unit": "mg/dL", "ref": "70-92", "flag": "H"},
+                {"name": "Post-prandial Blood Sugar", "value": "154", "unit": "mg/dL", "ref": "less than 140", "flag": "H"},
+            ]),
+            ("IRON STUDIES", [
+                {"name": "Ferritin", "value": "13", "unit": "ng/mL", "ref": "15-150", "flag": "L"},
+            ]),
+            ("ANTENATAL SCREEN", [
+                {"name": "Blood Group & Rh", "value": "A Positive", "unit": "", "ref": "", "flag": ""},
+                {"name": "TSH", "value": "3.5", "unit": "mIU/L", "ref": "0.4-4.0", "flag": ""},
+                {"name": "HIV I & II", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "HBsAg", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "VDRL", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "Urine Albumin", "value": "Nil", "unit": "", "ref": "Nil", "flag": ""},
+            ]),
+        ],
+        pathologist="Dr. Imran Siddiqui",
+        path_qual="MD (Pathology)  ·  Consultant Pathologist",
+    )
+    written += [("lab", p, g)]
+
+    # --- 08 · HIGH RISK — pre-eclampsia picture --------------------------------
+    p, g = draw_lab(
+        stem="08_kavita_kumari_anc_lab",
+        lab_name="Sanjeevani Hospital — Central Laboratory",
+        lab_tag="Clinical Laboratory  ·  Obstetric Emergency Workup",
+        address="Bailey Road, Patna 800001  ·  Bihar",
+        phone="Phone: 0612-2520 400  ·  sanjeevani-hosp.example",
+        nabl="NABL-MC-33642",
+        patient="Kavita Kumari",
+        age_sex="22 Y / F  ·  34 wk POG",
+        pid="SS-DEMO-008",
+        referred="Dr. Neelam Prasad, OBG",
+        collected="21/09/2026  10:35",
+        received="21/09/2026  10:50",
+        reported="21/09/2026  13:05",
+        sample="EDTA Blood + Serum + Urine",
+        lab_no="SHC-260921-1187",
+        sections=[
+            ("VITALS AT COLLECTION", [
+                {"name": "Blood Pressure", "value": "158/104", "unit": "mmHg", "ref": "less than 140/90", "flag": "H"},
+                {"name": "Pulse", "value": "96", "unit": "bpm", "ref": "60-100", "flag": ""},
+                {"name": "Temperature", "value": "37.1", "unit": "°C", "ref": "less than 37.5", "flag": ""},
+            ]),
+            ("HAEMATOLOGY — COMPLETE BLOOD COUNT", [
+                {"name": "Hemoglobin", "value": "10.4", "unit": "g/dL", "ref": "11.0-14.0", "flag": "L"},
+                {"name": "WBC", "value": "10200", "unit": "/cumm", "ref": "4000-11000", "flag": ""},
+                {"name": "Platelets", "value": "1.4", "unit": "lakhs/cumm", "ref": "1.5-4.1", "flag": "L"},
+                {"name": "MCV", "value": "82", "unit": "fL", "ref": "80-100", "flag": ""},
+            ]),
+            ("URINE ROUTINE", [
+                {"name": "Urine Albumin", "value": "++", "unit": "", "ref": "Nil", "flag": "H"},
+                {"name": "Urine Sugar", "value": "Nil", "unit": "", "ref": "Nil", "flag": ""},
+            ]),
+            ("BIOCHEMISTRY", [
+                {"name": "Fasting Blood Sugar", "value": "88", "unit": "mg/dL", "ref": "70-92", "flag": ""},
+                {"name": "Uric Acid", "value": "6.4", "unit": "mg/dL", "ref": "2.6-6.0", "flag": "H"},
+            ]),
+            ("ANTENATAL SCREEN", [
+                {"name": "Blood Group & Rh", "value": "B Positive", "unit": "", "ref": "", "flag": ""},
+                {"name": "TSH", "value": "3.0", "unit": "mIU/L", "ref": "0.4-4.0", "flag": ""},
+                {"name": "HIV I & II", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+                {"name": "HBsAg", "value": "Non-reactive", "unit": "", "ref": "Non-reactive", "flag": ""},
+            ]),
+        ],
+        pathologist="Dr. Alok Ranjan",
+        path_qual="MD (Pathology)  ·  Laboratory Director",
+    )
+    written += [("lab", p, g)]
+    return written
+
+
 def build() -> list[tuple[str, Path, Path]]:
     written: list[tuple[str, Path, Path]] = []
 

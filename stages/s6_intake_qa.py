@@ -64,6 +64,21 @@ class IntakeQAStage(Stage):
         for f in content.get("lab_findings", []):
             present.add(str(f.get("analyte", "")).strip().lower())
 
+        # Maternal-risk parameters (computed at stage 5) carry statuses the numeric
+        # interpreter can't produce — a combined Blood Pressure ("150/100") and a
+        # Urine Protein grade ("++"). Feed those in so grounded antenatal follow-ups
+        # (high BP / pre-eclampsia, proteinuria) can fire. Skip analytes already
+        # present from the interpretations to avoid duplicate facts.
+        mr = content.get("maternal_risk") or {}
+        for prm in mr.get("parameters", []):
+            name = str(prm.get("name", "")).strip()
+            key = name.lower()
+            if not name or key in present:
+                continue
+            labs.append(LabFact(analyte=name, value=str(prm.get("value", "")),
+                                unit=None, status=str(prm.get("status", "unknown"))))
+            present.add(key)
+
         dates = list(content.get("report_dates", []))
         meds = [m.get("name", "") for m in content.get("medications", []) if m.get("name")]
 
@@ -77,10 +92,11 @@ class IntakeQAStage(Stage):
         cfg = self._cfg()
         max_q = int(cfg.get("max_questions", 5))
         stale_months = int(cfg.get("stale_report_months", 6))
+        max_grounded = int(cfg.get("max_grounded", 3))
 
         facts = self._facts(ctx)
         selected = select(self._bank, facts, max_questions=max_q,
-                          stale_report_months=stale_months)
+                          stale_report_months=stale_months, max_grounded=max_grounded)
 
         questions: list[IntakeQuestion] = []
         for q in selected:
