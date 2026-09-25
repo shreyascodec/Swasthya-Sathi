@@ -56,6 +56,13 @@ class InterpretStage(Stage):
         sex = getattr(ctx, "patient_sex", None)  # optional; absent in POC context
 
         findings = self._findings(ctx)
+        if cfg.get("mode") == "maternal":
+            # Urine albumin/protein is graded qualitatively ("++", "trace", "Nil"),
+            # so it has no unit and the numeric field extractor drops it — yet the
+            # OCR raw_text has it verbatim. Recover the grade deterministically so
+            # proteinuria (a pre-eclampsia component) reaches the maternal risk
+            # engine and the intake questions.
+            findings = self._recover_urine_protein(ctx, findings)
         recovered = self._recovered_analytes(ctx, findings)
         flags: list[LabFlag] = []
         interps: list[Interpretation] = []
@@ -186,6 +193,34 @@ class InterpretStage(Stage):
                       for f in ctx.summary.content["lab_findings"]}
         return [str(f.get("analyte", "")) for f in findings
                 if self._analyte_key(f.get("analyte", "")) not in in_summary]
+
+    #: Urine albumin/protein line in OCR raw_text, e.g. "Urine Albumin ++ Nil H"
+    #: or "Urine Protein: Trace". Captures the qualitative grade token.
+    _URINE_PROTEIN_RE = re.compile(
+        r"urine\s*(?:albumin|protein)\b[^A-Za-z0-9+]*"
+        r"(nil|absent|negative|trace|present|positive|[1-4]?\s*\+{1,4}|\+{1,4})",
+        re.I,
+    )
+
+    def _recover_urine_protein(self, ctx: SessionContext, findings: list[dict]) -> list[dict]:
+        """Recover a urine albumin/protein grade from OCR raw_text when the unit-
+        less value was dropped by the numeric field extractor. No-op if a urine
+        protein/albumin finding is already present or nothing matches."""
+        for f in findings:
+            name = str(f.get("analyte", "")).lower()
+            if "urine" in name and ("album" in name or "protein" in name):
+                return findings  # already captured upstream — don't duplicate
+        if not (ctx.ocr and ctx.ocr.raw_text):
+            return findings
+        m = self._URINE_PROTEIN_RE.search(ctx.ocr.raw_text)
+        if not m:
+            return findings
+        grade = re.sub(r"\s+", "", m.group(1))
+        out = list(findings) + [{
+            "analyte": "Urine Protein", "value": grade, "unit": "", "ref_range": "Nil",
+        }]
+        ctx.log("stage.interpret.urine_recovered", detail=f"urine protein={grade}")
+        return out
 
     def _findings(self, ctx: SessionContext) -> list[dict]:
         """UNION of the Phase-4 summary findings and the raw OCR values.
