@@ -216,11 +216,21 @@ class InterpretStage(Stage):
         if not m:
             return findings
         grade = re.sub(r"\s+", "", m.group(1))
-        out = list(findings) + [{
-            "analyte": "Urine Protein", "value": grade, "unit": "", "ref_range": "Nil",
-        }]
+        row = {"analyte": "Urine Protein", "value": grade, "unit": "", "ref_range": "Nil"}
+        # Persist into the summary findings too: the report stage RE-runs the
+        # maternal risk assessment from summary.lab_findings, and it grades urine
+        # protein in the findings loop (where protein_st is set). Without this the
+        # recovered value would exist only for stage 5 and pre-eclampsia (R005)
+        # would not fire in the sealed report.
+        if ctx.summary is not None:
+            lf = ctx.summary.content.setdefault("lab_findings", [])
+            if not any("urine" in str(f.get("analyte", "")).lower()
+                       and ("album" in str(f.get("analyte", "")).lower()
+                            or "protein" in str(f.get("analyte", "")).lower())
+                       for f in lf):
+                lf.append(row)
         ctx.log("stage.interpret.urine_recovered", detail=f"urine protein={grade}")
-        return out
+        return list(findings) + [row]
 
     def _findings(self, ctx: SessionContext) -> list[dict]:
         """UNION of the Phase-4 summary findings and the raw OCR values.
