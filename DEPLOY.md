@@ -67,6 +67,7 @@ is separate — chosen by `SS_ENV` (`dev_4060` | `cloud` | `orin`, backed by
 | `SS_WARMUP` | `1` | load models at startup (readiness gate) |
 | `SS_SESSION_TTL_SECONDS` | `1800` | idle session + data-dir reap age |
 | `SS_MAX_SESSIONS` | `64` | in-memory session cap (LRU) |
+| `SS_PERSIST_SESSIONS` | `1` | persist sessions to disk so a restart/redeploy doesn't drop an in-flight visit |
 | `SS_PERSIST_REPORTS` | `1` | write `report_v<n>.json` on seal |
 | `SS_AVATAR_IDLE_S` | `120` | end live avatar this long after last kiosk heartbeat (inert until the heartbeat client ships) |
 | `SS_AVATAR_MAX_SESSION_S` | `600` | hard cap on live-avatar call length (crash backstop); lower to `240–300` for an aggressive stopgap |
@@ -109,9 +110,12 @@ powershell -ExecutionPolicy Bypass -File deploy\install_windows_startup.ps1
 
 ## 5. Data, privacy & durability
 
-- **Sessions are in-memory** (no database). A browser refresh **reattaches** to the
-  still-live session (the session id is kept in `sessionStorage`); a process restart
-  starts fresh.
+- **Sessions live in memory, backed by disk.** A browser refresh **reattaches** to the
+  still-live session (the id is kept in `sessionStorage`). With `SS_PERSIST_SESSIONS=1`
+  (default), each session is also snapshotted to `_session_data/<id>/session.json` on
+  every mutation and **restored on startup** (if still within `SS_SESSION_TTL_SECONDS`),
+  so a restart/redeploy no longer drops an in-flight visit. Set it to `0` for the old
+  in-memory-only behaviour.
 - **Idle cleanup:** sessions idle past `SS_SESSION_TTL_SECONDS` are dropped and their
   `_session_data/<id>/` directory (uploads, audio, report) is **deleted** — nothing
   lingers on the box. Orphan dirs from a prior crashed run are swept at startup.

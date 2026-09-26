@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI):
         "starting Swasthya Sakhi v%s — env=%s device=%s data_dir=%s",
         APP_VERSION, PIPELINE.config.env.name, PIPELINE.config.env.device, DATA_DIR,
     )
-    _sweep_orphan_dirs()  # crash recovery: drop stale session dirs from a prior run
+    _restore_sessions()  # reload persisted sessions (within TTL); sweep stale PHI dirs
     # Crash recovery for billing: no in-memory avatar session survives a restart,
     # so end any Brenin conversation left active by a prior process (the overnight
     # wallet drain). Off-thread so a slow upstream never blocks startup.
@@ -233,20 +233,92 @@ async def _reaper_loop() -> None:
             log.exception("avatar reaper error")
 
 
-def _sweep_orphan_dirs() -> None:
-    """On startup, drop session data dirs left by a prior process that are older
-    than the TTL. In-memory sessions never survive a restart, so any such dir is
-    orphaned PHI."""
+# --- session persistence: survive a restart/redeploy -------------------------
+# SESSIONS is in-memory only, so a deploy (systemctl restart) or a crash would
+# drop an in-flight visit and the kiosk's held id then 404s "unknown session".
+# We snapshot each session to <data>/<sid>/session.json on every mutation and
+# reload them (within TTL) at startup. Toggle with SS_PERSIST_SESSIONS=0.
+_PERSIST_SESSIONS = os.environ.get("SS_PERSIST_SESSIONS", "1") != "0"
+
+
+def _persist_session(s: _Session) -> None:
+    """Atomically write a session's state to disk. Best-effort: a persistence
+    failure must never break the patient's request."""
+    if not _PERSIST_SESSIONS:
+        return
+    try:
+        d = _session_dir(s.ctx.session_id)
+        d.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "v": 1,
+            "session_id": s.ctx.session_id,
+            "ctx": s.ctx.model_dump(mode="json"),
+            "stages": s.stages,
+            "next_idx": s.next_idx,
+            "paused": s.paused,
+            "last_activity": s.last_activity,
+        }
+        tmp = d / "session.json.tmp"
+        tmp.write_text(json.dumps(payload), encoding="utf-8")
+        tmp.replace(d / "session.json")  # atomic swap — never a half-written file
+    except Exception:  # noqa: BLE001
+        log.warning("could not persist session %s", s.ctx.session_id, exc_info=True)
+
+
+def _session_from_dict(data: dict) -> _Session:
+    """Rebuild a _Session from persisted JSON, bypassing __init__ (which would
+    mint a fresh context). Stage bookkeeping is re-seeded from the CURRENT
+    pipeline so a code change between runs cannot leave a stale/missing stage."""
+    s = _Session.__new__(_Session)
+    s.ctx = SessionContext.model_validate(data["ctx"])
+    stages = {
+        st.name: {"status": "pending", "elapsed": None, "note": ""}
+        for st in PIPELINE.stages
+    }
+    for name, v in (data.get("stages") or {}).items():
+        if name in stages and isinstance(v, dict):
+            stages[name] = v
+    s.stages = stages
+    s.next_idx = int(data.get("next_idx", 0))
+    s.paused = data.get("paused")
+    s.last_activity = float(data.get("last_activity", time.time()))
+    return s
+
+
+def _restore_sessions() -> None:
+    """Startup: reload persisted sessions still within TTL so a restart/redeploy
+    does not wipe an in-flight visit; sweep orphan/expired PHI dirs. Replaces the
+    old crash-recovery sweep (which assumed nothing survives a restart)."""
     if not DATA_DIR.is_dir():
         return
     cutoff = time.time() - CFG.session_ttl_seconds
+    restored: list[_Session] = []
     for d in DATA_DIR.iterdir():
         try:
-            if d.is_dir() and _SID_RE.match(d.name) and d.stat().st_mtime < cutoff:
-                shutil.rmtree(d, ignore_errors=True)
-                log.info("swept orphan session dir %s", d.name)
-        except OSError:
-            continue
+            if not (d.is_dir() and _SID_RE.match(d.name)):
+                continue
+            f = d / "session.json"
+            if not (_PERSIST_SESSIONS and f.is_file()):
+                # No (or disabled) persisted state -> orphan PHI dir; drop if stale.
+                if d.stat().st_mtime < cutoff:
+                    shutil.rmtree(d, ignore_errors=True)
+                    log.info("swept orphan session dir %s", d.name)
+                continue
+            data = json.loads(f.read_text(encoding="utf-8"))
+            if float(data.get("last_activity", 0)) < cutoff:
+                shutil.rmtree(d, ignore_errors=True)  # expired PHI
+                continue
+            restored.append(_session_from_dict(data))
+        except Exception:  # noqa: BLE001
+            log.warning("could not restore session dir %s", d.name, exc_info=True)
+    restored.sort(key=lambda s: s.last_activity)  # oldest first -> LRU order honest
+    for s in restored:
+        SESSIONS[s.ctx.session_id] = s
+    while len(SESSIONS) > CFG.max_sessions:
+        old_sid, _ = SESSIONS.popitem(last=False)
+        _delete_session_dir(old_sid)
+    if restored:
+        log.info("restored %d session(s) from disk", len(restored))
 
 
 # --- friendly stage-error text + report persistence --------------------------
@@ -1052,6 +1124,7 @@ def avatar_end(body: AvatarEndBody) -> dict:
 def create_session(body: NewSessionBody) -> dict:
     s = _Session(body.lang)
     _remember(s)
+    _persist_session(s)
     return _snapshot(s.ctx.session_id)
 
 
@@ -1073,6 +1146,7 @@ async def upload(sid: str, files: list[UploadFile] = File(...)) -> dict:
             id=uid, path=str(dest), source_path=str(dest),
             type=imaging.guess_type(dest),
         ))
+    _persist_session(s)
     return _snapshot(sid)
 
 
@@ -1169,6 +1243,7 @@ def run_stage(sid: str) -> dict:
         info["note"] = f"{type(e).__name__}: {e}"  # technical detail kept for the operator panel
         s.paused = {"kind": "error", "stage": stage.name,
                     "detail": _friendly_stage_error(stage.name, e)}
+    _persist_session(s)
     return _snapshot(sid)
 
 
@@ -1193,6 +1268,7 @@ def resume(sid: str, body: ResumeBody) -> dict:
     elif body.action == "stop":
         s.paused = None
         s.next_idx = len(PIPELINE.stages)  # halt
+    _persist_session(s)
     return _snapshot(sid)
 
 
@@ -1231,9 +1307,11 @@ async def answer(
     text = (transcript or "").strip()
     if text:
         _attach_text_answer(s.ctx, question_id, text)
+        _persist_session(s)
         return _snapshot(sid)
     with PIPELINE_LOCK:  # capture_answer runs STT — serialize against stage runs/warmup
         stage.capture_answer(s.ctx, question_id, str(dest))
+    _persist_session(s)
     return _snapshot(sid)
 
 
