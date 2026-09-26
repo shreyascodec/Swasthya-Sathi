@@ -331,6 +331,39 @@ def _looks_like_report(c: SessionContext) -> bool:
     return bool(content.get("lab_findings") or content.get("medications"))
 
 
+# --- maternal-appropriateness gate -------------------------------------------
+# The MCH kiosk runs an ANTENATAL pipeline (pregnancy risk tier + pregnancy
+# questions). A male patient's report must NOT be pushed through it. We detect a
+# POSITIVE male signal from the OCR text and, absent any female/pregnancy marker,
+# halt. Fail-OPEN: a report that never states sex (common on a plain Hb slip for a
+# pregnant woman) is allowed — we only reject on a clear male signal, so a genuine
+# ANC visit is never blocked. `\bmale\b` does not match inside "female".
+_MALE_RE = re.compile(r"\bmale\b|(?:sex|gender)\s*[:\-/]?\s*m\b|/\s*m\b(?!\w)", re.I)
+_FEMALE_RE = re.compile(r"\bfemale\b|(?:sex|gender)\s*[:\-/]?\s*f\b|/\s*f\b(?!\w)", re.I)
+_PREG_RE = re.compile(
+    r"\bpog\b|gestation|antenatal|\banc\b|\blmp\b|pregnan|gravida|obstetric|g\d+\s*p\d+",
+    re.I,
+)
+
+
+def _maternal_mode() -> bool:
+    try:
+        return PIPELINE.config.stage_cfg("interpret").get("mode") == "maternal"
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _maternal_mismatch(c: SessionContext) -> bool:
+    """True when the report clearly belongs to a MALE patient (no female/pregnancy
+    marker) — i.e. not an antenatal report for this kiosk. Conservative by design."""
+    text = (c.ocr.raw_text if c.ocr else "") or ""
+    if not text:
+        return False
+    if _FEMALE_RE.search(text) or _PREG_RE.search(text):
+        return False
+    return bool(_MALE_RE.search(text))
+
+
 def _stage_note(name: str, c: SessionContext) -> str:
     if name == "intake":
         flagged = sum(1 for u in c.uploads if u.needs_rescan)
@@ -1103,6 +1136,20 @@ def run_stage(sid: str) -> dict:
                           "uploaded document. Stop and re-upload the correct report, "
                           "or continue only if you are certain this is a valid report "
                           "the reader misread.",
+            }
+        # Gate: MCH kiosk is antenatal-only — a clearly MALE report must not be run
+        # through the pregnancy pipeline. Runs after the not-a-report gate (so a
+        # non-report owns its own pause first) and only in maternal mode.
+        if (stage.name == "summary" and s.paused is None
+                and _maternal_mode() and _maternal_mismatch(s.ctx)):
+            info["status"] = "flagged"
+            s.paused = {
+                "kind": "not_maternal", "stage": "summary",
+                "detail": "This kiosk is for antenatal (pregnancy) check-ups, but this "
+                          "report appears to be for a male patient. Please re-check the "
+                          "uploaded document and the patient. Stop and re-upload the "
+                          "correct antenatal report, or continue only if you are certain "
+                          "this is the right patient's report.",
             }
         # Gate: an uploaded page failed the quality check.
         if stage.name == "intake":
